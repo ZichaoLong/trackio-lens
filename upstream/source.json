@@ -1,0 +1,469 @@
+{
+  "repository": "https://github.com/gradio-app/trackio",
+  "tag": "trackio@0.44.0",
+  "commit": "d17bfcc9467124d9363bcd6b906f4e37848acf9d",
+  "backend_version": "0.44.0",
+  "release_url": "https://github.com/gradio-app/trackio/releases/tag/trackio%400.44.0",
+  "files": {
+    "LICENSE": {
+      "path": "LICENSE",
+      "sha256": "172b81b0daf760b5c73d141f588a42002e1bad47927587a5af4d55f8592883c5"
+    },
+    "upstream/assets/badge.png": {
+      "path": "trackio/assets/badge.png",
+      "sha256": "206b7847247e83279f498510a2760338a03116bb5141a658d71ec14429f9ea9e"
+    },
+    "upstream/assets/trackio_logo_dark.png": {
+      "path": "trackio/assets/trackio_logo_dark.png",
+      "sha256": "3e3792061d4d095759da30d7cfe7f14b621901793cd4d677b61b2896f5bf472b"
+    },
+    "upstream/assets/trackio_logo_light.png": {
+      "path": "trackio/assets/trackio_logo_light.png",
+      "sha256": "a6eb72253c0128ce79b526a86b7943eed37beec186b5f57ff6c1701d0e9ff596"
+    },
+    "upstream/assets/trackio_logo_old.png": {
+      "path": "trackio/assets/trackio_logo_old.png",
+      "sha256": "3922c4d1e465270ad4d8abb12023f3beed5d9f7f338528a4c0ac21dcf358a1c8"
+    },
+    "upstream/assets/trackio_logo_type_dark.png": {
+      "path": "trackio/assets/trackio_logo_type_dark.png",
+      "sha256": "0e206e3c444c2d75d4bbd6a985ac86944fe0cef9f9479ae37b8a783fae6c7c0b"
+    },
+    "upstream/assets/trackio_logo_type_dark_transparent.png": {
+      "path": "trackio/assets/trackio_logo_type_dark_transparent.png",
+      "sha256": "71da94795855710d214801eb9b9b7b8898e9a8757abac0e22966a0531bbb2f4f"
+    },
+    "upstream/assets/trackio_logo_type_light.png": {
+      "path": "trackio/assets/trackio_logo_type_light.png",
+      "sha256": "330a4e9448c2e8b49aca568517bd4c5d4db1eb9cf2a20acdb072b5a27a62425f"
+    },
+    "upstream/assets/trackio_logo_type_light_transparent.png": {
+      "path": "trackio/assets/trackio_logo_type_light_transparent.png",
+      "sha256": "74b3474c2cc7a3a4bc6c5b7e3c8dfcb7896793a86be7f1ccaa0888434f9ab064"
+    },
+    "frontend/.gitignore": {
+      "path": "trackio/frontend/.gitignore",
+      "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97"
+    },
+    "frontend/eslint.config.js": {
+      "path": "trackio/frontend/eslint.config.js",
+      "sha256": "195303519c1254ddf675ed38b4d194f1a77b53462cda98b7d6793b710304c5a0"
+    },
+    "frontend/index.html": {
+      "path": "trackio/frontend/index.html",
+      "sha256": "a14bbe816f19572b3b94fd21ba6540a0e78c75aa55d176a25f5cf1ee2f3fdfdf"
+    },
+    "frontend/package-lock.json": {
+      "path": "trackio/frontend/package-lock.json",
+      "sha256": "e33721515ae5494a72e1b66b3a32c58ddd29f55b4d79830a53269abbe083b3ca"
+    },
+    "frontend/package.json": {
+      "path": "trackio/frontend/package.json",
+      "sha256": "267ed37e5a9786fa3c9082cbb89ef5b83e417041364f3a06b6a2e1e0c71c9e12"
+    },
+    "frontend/src/App.svelte": {
+      "path": "trackio/frontend/src/App.svelte",
+      "sha256": "a49292c0cf9f9f1c6b72d344699b0b024114815c6c4dbc0e094e8a366c3e2ca1"
+    },
+    "frontend/src/App.test.js": {
+      "path": "trackio/frontend/src/App.test.js",
+      "sha256": "c822a90918735f846c12e56a4a20912997d65b2ba59b0aea192577bd341b5dc4"
+    },
+    "frontend/src/RegistryApp.svelte": {
+      "path": "trackio/frontend/src/RegistryApp.svelte",
+      "sha256": "df4e5b35e33325908b4b642c35e9916b549d6b66270421ef21dbeebdb8e45a12"
+    },
+    "frontend/src/components/Accordion.svelte": {
+      "path": "trackio/frontend/src/components/Accordion.svelte",
+      "sha256": "e2bd30a5e4fcc4152f21528e3074d863f6a1dcad67351ed15ba67db96c318d8e"
+    },
+    "frontend/src/components/AlertPanel.svelte": {
+      "path": "trackio/frontend/src/components/AlertPanel.svelte",
+      "sha256": "22d50b5d237d91ff20a5701b280dd38d5593238b35ab3b80affff27c5097752f"
+    },
+    "frontend/src/components/AliasPill.svelte": {
+      "path": "trackio/frontend/src/components/AliasPill.svelte",
+      "sha256": "db13993669a814b073fa87026ac06f1cbecbc4549d716cc90d669ba38b0a17ed"
+    },
+    "frontend/src/components/ArtifactVersionDetail.svelte": {
+      "path": "trackio/frontend/src/components/ArtifactVersionDetail.svelte",
+      "sha256": "25ed6a028c132ac441e3e4aa36e3c5a19556cd3e8a7d8d0bd6514258f0b00818"
+    },
+    "frontend/src/components/ArtifactsSidebar.svelte": {
+      "path": "trackio/frontend/src/components/ArtifactsSidebar.svelte",
+      "sha256": "ddef7d71f46fac0134f22e964bca2a7aa3eb7459df7af384057687c791ad9ef9"
+    },
+    "frontend/src/components/BarPlot.svelte": {
+      "path": "trackio/frontend/src/components/BarPlot.svelte",
+      "sha256": "f044c401d9ac378ddd39ddce100a2f03d5cc3e1dfd3b72568ea77b70e6b71ac0"
+    },
+    "frontend/src/components/ColoredCheckbox.svelte": {
+      "path": "trackio/frontend/src/components/ColoredCheckbox.svelte",
+      "sha256": "992c30bd50247096dfd94a00011487d40aa9fe8217106074e223c3a9aedfd093"
+    },
+    "frontend/src/components/ColoredRunRadioGroup.svelte": {
+      "path": "trackio/frontend/src/components/ColoredRunRadioGroup.svelte",
+      "sha256": "3c74447d2c54427a642451702c584c820530fc92f13fc96995c0d3f902d87d5a"
+    },
+    "frontend/src/components/ConfigFilters.svelte": {
+      "path": "trackio/frontend/src/components/ConfigFilters.svelte",
+      "sha256": "39699806dffd00ec7160e826e2b0be03032b089d1c4febd945239debcac1a411"
+    },
+    "frontend/src/components/ConfigFilters.test.js": {
+      "path": "trackio/frontend/src/components/ConfigFilters.test.js",
+      "sha256": "7fdf0f1e39e23658decd564eed798cbbe3ed35622789c7f44ac7ef94a4a93c32"
+    },
+    "frontend/src/components/ConfigFiltersTestHarness.svelte": {
+      "path": "trackio/frontend/src/components/ConfigFiltersTestHarness.svelte",
+      "sha256": "27dee8f564b613600fdc5bb4fccf4ed30449ac307bce99fcf6f8cfc3e20b4d1a"
+    },
+    "frontend/src/components/Dropdown.svelte": {
+      "path": "trackio/frontend/src/components/Dropdown.svelte",
+      "sha256": "a6f6e0b0ac0479c8060ff3d10f9c1bcaf19ddeef7f3cde83deee43c4ae35810e"
+    },
+    "frontend/src/components/GradioCheckbox.svelte": {
+      "path": "trackio/frontend/src/components/GradioCheckbox.svelte",
+      "sha256": "9439856540a54b453096a1c0d903494c9220c2028121a27631aa06ba238ae33f"
+    },
+    "frontend/src/components/GradioSlider.svelte": {
+      "path": "trackio/frontend/src/components/GradioSlider.svelte",
+      "sha256": "5957f4ff0b75780110da2eed9fadda0865f0be5766d2f3f018b265e3210f76e2"
+    },
+    "frontend/src/components/GradioTable.svelte": {
+      "path": "trackio/frontend/src/components/GradioTable.svelte",
+      "sha256": "ade1805289846c9591a5645bf33a6164f1508b92c6f8d5591ca7b193c5fcc26b"
+    },
+    "frontend/src/components/GradioTextbox.svelte": {
+      "path": "trackio/frontend/src/components/GradioTextbox.svelte",
+      "sha256": "8e2e08fa444c2e08051db1ec7d7d417b39a49bb005ea7b3a98881098ca8adbbd"
+    },
+    "frontend/src/components/HistogramPlot.svelte": {
+      "path": "trackio/frontend/src/components/HistogramPlot.svelte",
+      "sha256": "6604f2d0a8ca93f11f18d439908d083d3537cb6ab17f5d7e2502c125bae62d9b"
+    },
+    "frontend/src/components/IndentGuides.svelte": {
+      "path": "trackio/frontend/src/components/IndentGuides.svelte",
+      "sha256": "c59d7a4c2440a3f0c27c05b5795306b329da33a6a76a0ed46cedd30e9991ab37"
+    },
+    "frontend/src/components/LinePlot.svelte": {
+      "path": "trackio/frontend/src/components/LinePlot.svelte",
+      "sha256": "57ef0a15efd330417b14c35653c8db750d30b7a8d8c27239cb1700a2a7a81c1a"
+    },
+    "frontend/src/components/LoadingTrackio.svelte": {
+      "path": "trackio/frontend/src/components/LoadingTrackio.svelte",
+      "sha256": "de39eb7d6ebb8966e73cddb05669957783f166aa860ed8bb2274dfc0ed6edd29"
+    },
+    "frontend/src/components/Logo.svelte": {
+      "path": "trackio/frontend/src/components/Logo.svelte",
+      "sha256": "4e3d10ca13e814e1082f9b2a7aa043922e22bb717d976cdcd6982d6a961a42b8"
+    },
+    "frontend/src/components/Navbar.svelte": {
+      "path": "trackio/frontend/src/components/Navbar.svelte",
+      "sha256": "8697353d5af33230b196d08101ef2ad3fa20f06d0a238e47438fdad059ffa225"
+    },
+    "frontend/src/components/Object3DCard.svelte": {
+      "path": "trackio/frontend/src/components/Object3DCard.svelte",
+      "sha256": "677dd179cd9065b0a45dd9282a7461e99126e19fee0d3501dd41747519580113"
+    },
+    "frontend/src/components/Object3DModal.svelte": {
+      "path": "trackio/frontend/src/components/Object3DModal.svelte",
+      "sha256": "3caa3e34b4ef5055323840ac2879eec1d2f44a29fc63c853751b1ef5e0b281fe"
+    },
+    "frontend/src/components/ProjectSelector.svelte": {
+      "path": "trackio/frontend/src/components/ProjectSelector.svelte",
+      "sha256": "16b71c5bdec6f97f1baac997ff86d788312fb9e1fb05e0af4a26acbda45be310"
+    },
+    "frontend/src/components/RunComparer.svelte": {
+      "path": "trackio/frontend/src/components/RunComparer.svelte",
+      "sha256": "f1b400a757aafb743e71d056ae5c717a2cf5c4be7590df544debebefd3f5dc66"
+    },
+    "frontend/src/components/SearchBox.svelte": {
+      "path": "trackio/frontend/src/components/SearchBox.svelte",
+      "sha256": "fdb340f14e1ac1b36362ebe5e4a1c1c8bc59784c206b6d7a7487eb8b07e23af9"
+    },
+    "frontend/src/components/Sidebar.svelte": {
+      "path": "trackio/frontend/src/components/Sidebar.svelte",
+      "sha256": "a8ae5d2723965691be8fa5319b614d1f0fb7ce49d0a9440ac248b898fa05a3a8"
+    },
+    "frontend/src/components/SidebarShell.svelte": {
+      "path": "trackio/frontend/src/components/SidebarShell.svelte",
+      "sha256": "20153cdc25e38505b48685a4bdea21aca10903d23b627c1b4844b4fcc574d43e"
+    },
+    "frontend/src/components/WaveformAudio.svelte": {
+      "path": "trackio/frontend/src/components/WaveformAudio.svelte",
+      "sha256": "4e847b2e3d8d5d2d7b53ca3c6719d242e8b9a6f7f02afa4fbb4fc46bae5d04fa"
+    },
+    "frontend/src/components/lineage/LineageGraph.svelte": {
+      "path": "trackio/frontend/src/components/lineage/LineageGraph.svelte",
+      "sha256": "a5e8a129248028f53daf4889cfb48ac6a2a6acf9eb243d7ff2e3dc1f6f9bda8e"
+    },
+    "frontend/src/components/lineage/LineagePreview.svelte": {
+      "path": "trackio/frontend/src/components/lineage/LineagePreview.svelte",
+      "sha256": "27d7619f50c4a6b463da99b7dd722eaa6bc68d7d83bfa00c1aa8f39fe8707e41"
+    },
+    "frontend/src/components/lineage/LineageSection.svelte": {
+      "path": "trackio/frontend/src/components/lineage/LineageSection.svelte",
+      "sha256": "cbc81770d348d4a2a2945ed1c9e671fb472ab010a737fd2f904458e5f3ce2ab3"
+    },
+    "frontend/src/lib/__fixtures__/lineageGolden.js": {
+      "path": "trackio/frontend/src/lib/__fixtures__/lineageGolden.js",
+      "sha256": "f4167c723403531994317547aceec688833974bc4206d66bf5345a612a0c9427"
+    },
+    "frontend/src/lib/__fixtures__/lineage_golden.json": {
+      "path": "trackio/frontend/src/lib/__fixtures__/lineage_golden.json",
+      "sha256": "7fb31131858f1d37c67dfee0fa03a4ad3b4fcd1aa472b669d20672dce07bf01a"
+    },
+    "frontend/src/lib/api.js": {
+      "path": "trackio/frontend/src/lib/api.js",
+      "sha256": "c7acf3dc1d9873a6d0a3f2e9b77e6d38c49a4f64e32a44757e068b98ccdfdaff"
+    },
+    "frontend/src/lib/chartLifecycle.js": {
+      "path": "trackio/frontend/src/lib/chartLifecycle.js",
+      "sha256": "a52215284fdb44561e4c22bce48dbb0f0ee5ea6969a4b540f85381a724d438a6"
+    },
+    "frontend/src/lib/chartLifecycle.test.js": {
+      "path": "trackio/frontend/src/lib/chartLifecycle.test.js",
+      "sha256": "ebd82068c87a165267f1060e9cf0f6a30421d87be5852c6561f7d1275830f88a"
+    },
+    "frontend/src/lib/clipboard.js": {
+      "path": "trackio/frontend/src/lib/clipboard.js",
+      "sha256": "84a6c8985365967321e14f99e9e9fec7ca8fd2b82a377f9a2283c079cf03e63c"
+    },
+    "frontend/src/lib/comparer.js": {
+      "path": "trackio/frontend/src/lib/comparer.js",
+      "sha256": "6d3b1409cff47084c5d4a013bb90f58fabccccc58842265c219d0f948e65ab82"
+    },
+    "frontend/src/lib/comparer.test.js": {
+      "path": "trackio/frontend/src/lib/comparer.test.js",
+      "sha256": "615f6f07a4e48ab49c39cf77deacfd91e35d5222a1211ed3314711cbc4833c7f"
+    },
+    "frontend/src/lib/console.js": {
+      "path": "trackio/frontend/src/lib/console.js",
+      "sha256": "8ec461de4b2168f6537b655b8f893a95c226119b4389fd89fdaf44e63f4478f8"
+    },
+    "frontend/src/lib/console.test.js": {
+      "path": "trackio/frontend/src/lib/console.test.js",
+      "sha256": "ba3c09ed9c5c0c074ad02275040311aad1dc6c9bb2148885bc031b065aade7f0"
+    },
+    "frontend/src/lib/dataProcessing.js": {
+      "path": "trackio/frontend/src/lib/dataProcessing.js",
+      "sha256": "8b757cbf32b9588fd6e3a82d4a7e1b64e769cb2783014cd43ebf2d7419099b90"
+    },
+    "frontend/src/lib/dataProcessing.test.js": {
+      "path": "trackio/frontend/src/lib/dataProcessing.test.js",
+      "sha256": "dce9542cbd78575f26f908cfdc2a36993cb4cf1d4551229bd03e58e14b84cfff"
+    },
+    "frontend/src/lib/format.js": {
+      "path": "trackio/frontend/src/lib/format.js",
+      "sha256": "fe4acf973fefd7877bce49480b58c191f604a0210857fd284da79b1b89f993a0"
+    },
+    "frontend/src/lib/gradio-theme.css": {
+      "path": "trackio/frontend/src/lib/gradio-theme.css",
+      "sha256": "152cf9a4b4eb86893e6bb242ba4b611361c94835563057f53d90469e60e34f0c"
+    },
+    "frontend/src/lib/grouping.js": {
+      "path": "trackio/frontend/src/lib/grouping.js",
+      "sha256": "92dbbdcec8ce8a0b86e86174bf510ef5ff4d941076242eca80ee1d04d80f03fa"
+    },
+    "frontend/src/lib/grouping.test.js": {
+      "path": "trackio/frontend/src/lib/grouping.test.js",
+      "sha256": "fa9bdece5dd52df82d7139c80d21aca4c3d8df64c7c498c965136d8b48c1009d"
+    },
+    "frontend/src/lib/hostPolling.js": {
+      "path": "trackio/frontend/src/lib/hostPolling.js",
+      "sha256": "bf7d0e8a5bc5beeed9aed9d00149fefc45366185cdeccef6e8048804db3bdbc3"
+    },
+    "frontend/src/lib/hostPolling.test.js": {
+      "path": "trackio/frontend/src/lib/hostPolling.test.js",
+      "sha256": "682ec7aab93c94dcb1353d4eab1ee05e7f55203d4f7a8678bf501357a2ce68c8"
+    },
+    "frontend/src/lib/legend.js": {
+      "path": "trackio/frontend/src/lib/legend.js",
+      "sha256": "d194b280cc8d735ea9e8911082b274d0690ec820b0e73fb7382887936a4a7ebd"
+    },
+    "frontend/src/lib/legend.test.js": {
+      "path": "trackio/frontend/src/lib/legend.test.js",
+      "sha256": "519ff090000e6f5c573cc72796b95c5dc04b1946b842567a3c9426d36dbe8439"
+    },
+    "frontend/src/lib/lineage.js": {
+      "path": "trackio/frontend/src/lib/lineage.js",
+      "sha256": "dc8e339ed203f8b48e0e8c9658460bf4deee4024fb85f95c4114119ec705fd33"
+    },
+    "frontend/src/lib/lineage.test.js": {
+      "path": "trackio/frontend/src/lib/lineage.test.js",
+      "sha256": "4fd8ce93a0c5be8bb9e4b17837e8ecac0c5b1bf65a3dc20d5dc4cf5863dc761e"
+    },
+    "frontend/src/lib/lineageLayout.js": {
+      "path": "trackio/frontend/src/lib/lineageLayout.js",
+      "sha256": "661ac9b3eeb9dba089dda45270dec431d7350479a0b8789f33e71b941e680b56"
+    },
+    "frontend/src/lib/lineageLayout.test.js": {
+      "path": "trackio/frontend/src/lib/lineageLayout.test.js",
+      "sha256": "51934225be625f0c28fbcc504d612a8e542b38555310676e62dded4b6abae1d2"
+    },
+    "frontend/src/lib/object3dViewer.js": {
+      "path": "trackio/frontend/src/lib/object3dViewer.js",
+      "sha256": "b27e0e26cef8f0c67b1ab8c5008fb20e0c2a7d0e0735aa0d50b95fbd0f11b983"
+    },
+    "frontend/src/lib/parquetReader.js": {
+      "path": "trackio/frontend/src/lib/parquetReader.js",
+      "sha256": "15161779c7f657978d3ff80b5fd14cd3840612d24634aab5fefaf16ebfcdde97"
+    },
+    "frontend/src/lib/plotLayout.js": {
+      "path": "trackio/frontend/src/lib/plotLayout.js",
+      "sha256": "a6059fe7d83381753ec77f82948b2a0f241a4debf6adbdb594cc8cf663a75456"
+    },
+    "frontend/src/lib/plyParser.js": {
+      "path": "trackio/frontend/src/lib/plyParser.js",
+      "sha256": "2c424892bad73fb1b0d64fd6979a007fadcabf4f93b000f40d366cc485e0873e"
+    },
+    "frontend/src/lib/plyParser.test.js": {
+      "path": "trackio/frontend/src/lib/plyParser.test.js",
+      "sha256": "cc2555da3b6023847fd8452869429f3f3d440af8265e22ab8df80eb2676ccf3f"
+    },
+    "frontend/src/lib/router.js": {
+      "path": "trackio/frontend/src/lib/router.js",
+      "sha256": "c672cc50b3a4456729a5e2d201b5215b5e80d617b18d01c731cbcad111590bc4"
+    },
+    "frontend/src/lib/router.test.js": {
+      "path": "trackio/frontend/src/lib/router.test.js",
+      "sha256": "127f44a2c69fbaf57bf34019218746bedeb69189019ab64d61d26a8c49c529e9"
+    },
+    "frontend/src/lib/runFilters.js": {
+      "path": "trackio/frontend/src/lib/runFilters.js",
+      "sha256": "42aef4505693e1dc6189e770773aab92f499d53a0031731b629ab5585437c134"
+    },
+    "frontend/src/lib/runFilters.test.js": {
+      "path": "trackio/frontend/src/lib/runFilters.test.js",
+      "sha256": "fd35bab0e18f3d17dcc4e2a1471973c1a528c5ae4996bdeca7ad7415b00a2bac"
+    },
+    "frontend/src/lib/selection.js": {
+      "path": "trackio/frontend/src/lib/selection.js",
+      "sha256": "1be603ad940c5d7ed98d0eda4a54e8c0e3d6d38d63db520f206370a8c6fc8bb8"
+    },
+    "frontend/src/lib/selection.test.js": {
+      "path": "trackio/frontend/src/lib/selection.test.js",
+      "sha256": "24b47fb7f67ad6e3d1502e1cc43045ab995f8fabfe867c42a4559f270fd78e75"
+    },
+    "frontend/src/lib/staticApi.js": {
+      "path": "trackio/frontend/src/lib/staticApi.js",
+      "sha256": "87df402e67a2092b89efb588cd1c2668b59e2ee2db2d21cdd3ccff2642766bc9"
+    },
+    "frontend/src/lib/stores.js": {
+      "path": "trackio/frontend/src/lib/stores.js",
+      "sha256": "8a910b6cd302254f40636581bbf9ab7d6b7834af1a359f68085234b1fe8dad09"
+    },
+    "frontend/src/lib/stores.test.js": {
+      "path": "trackio/frontend/src/lib/stores.test.js",
+      "sha256": "1e810339ed6d66a00103c2d96a72fb036b43571ba354eba830a75c9f02480c7e"
+    },
+    "frontend/src/lib/theme.js": {
+      "path": "trackio/frontend/src/lib/theme.js",
+      "sha256": "02914e3ed13c6f689d9e12bd402ffddff4b841170edec8edce5a961746b43aaa"
+    },
+    "frontend/src/lib/traceUtils.js": {
+      "path": "trackio/frontend/src/lib/traceUtils.js",
+      "sha256": "719c7f59abd5c3ef5273e9017af493463154df3a597c04423ac81a7bb8e5ef94"
+    },
+    "frontend/src/lib/traceUtils.test.js": {
+      "path": "trackio/frontend/src/lib/traceUtils.test.js",
+      "sha256": "15d3b7cd0178d44e8f148a8435d93afa4ea1bc84fb91e3b1d80760d4aa504f9c"
+    },
+    "frontend/src/lib/urlTokens.js": {
+      "path": "trackio/frontend/src/lib/urlTokens.js",
+      "sha256": "549fe30a6a8184eee1f75d1ce79d212ddf1a03df7285730c1af1020887f645f6"
+    },
+    "frontend/src/lib/urlTokens.test.js": {
+      "path": "trackio/frontend/src/lib/urlTokens.test.js",
+      "sha256": "94a89888f17dba5758933eee6aae6d4e2c2a15be850516cc62adc7e6c8938867"
+    },
+    "frontend/src/lib/vega.js": {
+      "path": "trackio/frontend/src/lib/vega.js",
+      "sha256": "879ceece8f7d8e9d0b3c12aa64d6e25d3fa9d6fcbe07e67d6bd5efc18155ecd3"
+    },
+    "frontend/src/lib/vega.test.js": {
+      "path": "trackio/frontend/src/lib/vega.test.js",
+      "sha256": "813ce971bcbab6486b410ecdcfef25d8541d4a69d1f66ffda884673c13305f3c"
+    },
+    "frontend/src/lib/viewState.js": {
+      "path": "trackio/frontend/src/lib/viewState.js",
+      "sha256": "6aa1c83fe8d8afc2b47aa9278c61d940ee4245c4540ccfb818320d4d7a5660e2"
+    },
+    "frontend/src/lib/viewState.test.js": {
+      "path": "trackio/frontend/src/lib/viewState.test.js",
+      "sha256": "9b94012ba8df5210e29e3e7816e2dd1670afd58535254828bb45d8e61c226f41"
+    },
+    "frontend/src/lib/viewport.js": {
+      "path": "trackio/frontend/src/lib/viewport.js",
+      "sha256": "88fafe8a55b461b593416d8d8e92b68dbb05153504b7d7c86965beb4a59cf4db"
+    },
+    "frontend/src/main.js": {
+      "path": "trackio/frontend/src/main.js",
+      "sha256": "792377e049c5ab8a17360f317b4488c80d1fec45773a7b3851da75ef51108b65"
+    },
+    "frontend/src/pages/ArtifactsDetail.svelte": {
+      "path": "trackio/frontend/src/pages/ArtifactsDetail.svelte",
+      "sha256": "753e30840ce23ff5743febbdcdfeb59573a3e32c563abfb69978c685affd9564"
+    },
+    "frontend/src/pages/Files.svelte": {
+      "path": "trackio/frontend/src/pages/Files.svelte",
+      "sha256": "4273f6b531e1ef9eedcb04197d19817dd5e2421819b1073425fb6f0fc12b3409"
+    },
+    "frontend/src/pages/Media.svelte": {
+      "path": "trackio/frontend/src/pages/Media.svelte",
+      "sha256": "b86c87ed09b14194416cb0208af77c675f3c78bc5918832bde7969dc85c5e783"
+    },
+    "frontend/src/pages/Metrics.svelte": {
+      "path": "trackio/frontend/src/pages/Metrics.svelte",
+      "sha256": "30948fee261146ef002e86789d2c8e000208da350b3949631f14d6b2e8526644"
+    },
+    "frontend/src/pages/Registries.svelte": {
+      "path": "trackio/frontend/src/pages/Registries.svelte",
+      "sha256": "80c4f47fc7aa57d55fe559771955f3ee3b666f16c86e489145b709b9e64dbd35"
+    },
+    "frontend/src/pages/Reports.svelte": {
+      "path": "trackio/frontend/src/pages/Reports.svelte",
+      "sha256": "9bd1d13efd38be89c1d5fd20565a7a51a61e5a66a6122050ccb9db272ab08b11"
+    },
+    "frontend/src/pages/RunDetail.svelte": {
+      "path": "trackio/frontend/src/pages/RunDetail.svelte",
+      "sha256": "d58bddf5bdb1ef67a3a792a83439912a466d337546d526c30c191646844c5951"
+    },
+    "frontend/src/pages/Runs.svelte": {
+      "path": "trackio/frontend/src/pages/Runs.svelte",
+      "sha256": "0277469df68f9fa2a7b721588fad6030ce443583651526f339dca367b79afa04"
+    },
+    "frontend/src/pages/Runs.test.js": {
+      "path": "trackio/frontend/src/pages/Runs.test.js",
+      "sha256": "118e1b5ca847721cd220fa92be2fee19b14d4512d29cb9849099c63a53c05c97"
+    },
+    "frontend/src/pages/RunsTestHarness.svelte": {
+      "path": "trackio/frontend/src/pages/RunsTestHarness.svelte",
+      "sha256": "fbdf3b61322f9541290bed95cae947df63cdb2f4813b9134097d4de4b40dc908"
+    },
+    "frontend/src/pages/Settings.svelte": {
+      "path": "trackio/frontend/src/pages/Settings.svelte",
+      "sha256": "236174194a8bce7459c90c46ca3d704f7c5826a2fb2197439ce8360d180c3ba9"
+    },
+    "frontend/src/pages/SystemMetrics.svelte": {
+      "path": "trackio/frontend/src/pages/SystemMetrics.svelte",
+      "sha256": "1b73bd08a1ef621fcc1b36b2a9ed3d6368a4e4f830d4ffb3c4dea3ee5bbd97d4"
+    },
+    "frontend/src/pages/Traces.svelte": {
+      "path": "trackio/frontend/src/pages/Traces.svelte",
+      "sha256": "c5486d558cf3ddcdbe7baae1e0d14bfcdbfb0b6758aa53fb5cd01d81aa46b49d"
+    },
+    "frontend/svelte.config.js": {
+      "path": "trackio/frontend/svelte.config.js",
+      "sha256": "02117a7d9864dec9d8c8bd8fd649623ab1b31adc592bb7707ba996631b9029f9"
+    },
+    "frontend/vite.config.js": {
+      "path": "trackio/frontend/vite.config.js",
+      "sha256": "b7c40cb0363d53594f2d999b56ed584e877c6389912b5a04202e530601debe08"
+    },
+    "frontend/vitest.config.js": {
+      "path": "trackio/frontend/vitest.config.js",
+      "sha256": "2e08d0446812101ed889ef9b1e3afcd8a062d5985f82c42ec86f9ea8a2796733"
+    }
+  }
+}
