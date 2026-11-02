@@ -1,4 +1,5 @@
 let rateLimitCooldownUntil = 0;
+export const LIVE_POLL_INTERVAL_MS = 5000;
 
 export function isHfSpaceHost() {
   if (typeof window === "undefined") return false;
@@ -17,11 +18,11 @@ export function isRateLimitCooldownActive() {
 }
 
 export function getAppPollIntervalMs() {
-  return isHfSpaceHost() ? 2500 : 1000;
+  return LIVE_POLL_INTERVAL_MS;
 }
 
 export function getMetricsPollIntervalMs() {
-  return isHfSpaceHost() ? 3500 : 1000;
+  return LIVE_POLL_INTERVAL_MS;
 }
 
 export function isTabHidden() {

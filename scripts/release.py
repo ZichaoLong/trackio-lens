@@ -5,6 +5,7 @@ Only the explicitly named systemd user service is ever stopped or restarted.
 """
 
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -347,4 +348,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if not args.service.endswith(".service") or "/" in args.service:
         parser.error("Specify one systemd user .service name")
-    deploy(args)
+    args.root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_path(args.root, directory=True)
+    with (args.root / ".deploy.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit("Another publication is already running for this instance")
+        deploy(args)

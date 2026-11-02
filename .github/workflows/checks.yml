@@ -1,0 +1,32 @@
+name: checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements.lock
+          .venv/bin/pip install --no-build-isolation --no-deps -e .
+          npm --prefix frontend ci
+      - run: |
+          .venv/bin/ruff check trackio_lens scripts tests
+          .venv/bin/ruff format --check trackio_lens scripts tests
+          .venv/bin/python -m pytest -q
+          npm --prefix frontend run lint
+          npm --prefix frontend test
+          .venv/bin/python scripts/build.py
+      - run: |
+          .venv/bin/python -m playwright install --with-deps chromium
+          .venv/bin/python scripts/check_demo.py --output .local/ci-demo

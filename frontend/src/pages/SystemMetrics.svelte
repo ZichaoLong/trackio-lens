@@ -639,6 +639,10 @@
     flex-wrap: wrap;
     gap: 12px;
   }
+  @media (max-width: 768px) {
+    .system-page {padding:12px;min-width:0;}
+    .plot-grid {display:grid;grid-template-columns:minmax(0,1fr);}
+  }
   .subgroup-list {
     margin-top: 16px;
   }

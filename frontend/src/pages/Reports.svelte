@@ -202,6 +202,7 @@
     padding: 20px 24px;
     overflow-y: auto;
     flex: 1;
+    min-width: 0;
   }
   .controls {
     display: flex;
@@ -316,6 +317,7 @@
     background: var(--background-fill-primary, white);
   }
   .report-meta {
+    overflow-wrap: anywhere;
     font-size: var(--text-sm, 12px);
     color: var(--body-text-color-subdued, #6b7280);
     margin-bottom: 8px;
@@ -324,6 +326,7 @@
     font-size: var(--text-md, 14px);
     color: var(--body-text-color, #1f2937);
     line-height: 1.6;
+    overflow-wrap: anywhere;
   }
   .report-content :global(h2) {
     font-size: 18px;

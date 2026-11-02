@@ -5,7 +5,7 @@ import secrets
 from pathlib import Path
 
 from .auth import Auth, initialize, password_hash
-from .config import Config
+from .config import Config, private_path
 
 
 def main():
@@ -20,6 +20,14 @@ def main():
     serve = commands.add_parser("serve")
     serve.add_argument("--config", type=Path, required=True)
     serve.add_argument("--frontend", type=Path)
+    api = commands.add_parser(
+        "api", help="Call the official HTTP API with private credential files"
+    )
+    api.add_argument("--url", required=True)
+    api.add_argument("--credentials", type=Path, required=True)
+    api.add_argument("--api", required=True)
+    api.add_argument("--params-file", type=Path)
+    api.add_argument("--write-token-file", type=Path)
     args = parser.parse_args()
     if args.command == "init":
         initialize(args.state_dir, args.username)
@@ -44,6 +52,20 @@ def main():
             (args.state_dir / "initial-access.json").unlink(missing_ok=True)
         auth.revoke()
         print("All browser sessions revoked.")
+    elif args.command == "api":
+        from .client import remote_client
+
+        private_path(args.credentials)
+        credentials = json.loads(args.credentials.read_text())
+        write_token = None
+        if args.write_token_file:
+            private_path(args.write_token_file)
+            write_token = args.write_token_file.read_text().strip()
+        params = json.loads(args.params_file.read_text()) if args.params_file else {}
+        client = remote_client(args.url, credentials["api_token"], write_token)
+        print(
+            json.dumps(client.predict(api_name=args.api, **params), ensure_ascii=False)
+        )
     else:
         import uvicorn
         from starlette.middleware.gzip import GZipMiddleware

@@ -9,6 +9,7 @@
     observeNearViewport,
   } from "../lib/chartLifecycle.js";
   import { escapeVegaField } from "../lib/vega.js";
+  import ChartReadout from "./ChartReadout.svelte";
 
   let {
     data = [],
@@ -36,6 +37,19 @@
   let plotContainer = $state(null);
   let fullscreenHost = $state(null);
   let fullscreen = $state(false);
+  let showReadout = $state(false);
+  let readoutTarget = $state(null);
+
+  function touchReadout(event) {
+    if (event.pointerType !== "touch" || !event.target.closest(".plot")) return;
+    const view = viewManager.current;
+    const canvas = container?.querySelector("canvas");
+    if (!view || !canvas) return;
+    const scale = view.scale("x");
+    if (typeof scale?.invert !== "function") return;
+    readoutTarget = scale.invert(event.clientX - canvas.getBoundingClientRect().left - view.origin()[0]);
+    showReadout = true;
+  }
   let nearViewport = $state(false);
   const viewManager = createVegaViewManager();
 
@@ -617,8 +631,10 @@
   ondragstart={draggable ? handleDragStart : undefined}
   ondragover={draggable ? ondragover : undefined}
   ondrop={draggable ? ondrop : undefined}
+  onpointerdown={touchReadout}
 >
   <div class="plot-toolbar">
+    <button type="button" class="toolbar-btn read-values" onclick={() => { showReadout = !showReadout; }} aria-expanded={showReadout} title="Read original values">Read values</button>
     <button
       type="button"
       class="toolbar-btn"
@@ -697,6 +713,7 @@
         </button>
       {/if}
     </div>
+    {#if showReadout}<ChartReadout {data} {x} {y} target={readoutTarget} />{/if}
     {#if legendEntries.length > 0}
       <div class="custom-legend">
         {#each visibleLegend as entry}
@@ -911,6 +928,14 @@
   }
   .plot-container:hover .plot-toolbar {
     opacity: 1;
+  }
+  .plot-container:focus-within .plot-toolbar {opacity:1;}
+  .read-values {font-size:11px;}
+  @media (pointer: coarse) {
+    .plot-toolbar {position:relative;inset:auto;justify-content:flex-end;opacity:1;margin-bottom:10px;}
+    .toolbar-btn {min-height:36px;min-width:36px;}
+    .plot {touch-action:pan-y;}
+    .plot-container {min-width:0;}
   }
   .toolbar-btn {
     border: 1px solid var(--border-color-primary, #e5e7eb);

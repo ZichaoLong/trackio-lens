@@ -16,10 +16,16 @@
   } = $props();
 </script>
 
+<svelte:window onkeydown={(event) => { if (event.key === "Escape" && open) { open = false; onToggle?.(false); } }} />
+
+{#if open}
+  <button class="sidebar-backdrop" aria-label="Close experiment controls" onclick={() => { open = false; onToggle?.(false); }}></button>
+{/if}
 <aside class="sidebar-shell" class:collapsed={!open}>
   <button
     class="toggle-btn"
     title={open ? "Collapse sidebar" : "Expand sidebar"}
+    aria-expanded={open}
     onclick={() => {
       open = !open;
       onToggle?.(open);
@@ -62,6 +68,7 @@
 </aside>
 
 <style>
+  .sidebar-backdrop { display: none; }
   .sidebar-shell {
     width: 290px;
     min-width: 290px;
@@ -110,5 +117,13 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+  }
+  @media (max-width: 768px) {
+    .sidebar-shell {position:fixed;inset:0 auto 0 0;width:min(320px, calc(100vw - 44px));min-width:0;z-index:60;box-shadow:8px 0 30px #0002;transition:none;}
+    .sidebar-shell.collapsed {width:0;min-width:0;border:0;overflow:visible;box-shadow:none;}
+    .sidebar-backdrop {display:block;position:fixed;inset:0;background:#10182866;border:0;z-index:59;}
+    .toggle-btn {min-width:36px;min-height:36px;top:4px;right:4px;}
+    .collapsed .toggle-btn {position:fixed;left:4px;right:auto;top:4px;background:var(--background-fill-primary,#fff);}
+    .shell-header {padding-top:48px;}
   }
 </style>

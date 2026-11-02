@@ -211,3 +211,14 @@ def test_login_rate_limit_and_file_permissions(instance):
     app.auth.credentials_path.chmod(0o644)
     with pytest.raises(ValueError, match="mode 600"):
         app.auth.credentials()
+
+
+def test_shortened_ttl_applies_to_existing_sessions(instance):
+    from trackio_lens.auth import Auth
+
+    app, _ = instance
+    token, _, _ = app.auth.create_session()
+    with app.auth.connect() as db:
+        db.execute("UPDATE sessions SET created = ?", (time.time() - 10,))
+    assert app.auth.session(token)
+    assert Auth(app.config.state_dir, ttl=5).session(token) is None

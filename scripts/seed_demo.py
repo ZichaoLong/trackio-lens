@@ -58,6 +58,10 @@ def seed(directory: Path):
                     }
                 )
                 run.log(metrics, step=step)
+            for step in range(8):
+                trackio.log_system(
+                    {"cpu/usage_percent": 30 + step, "memory/used_gb": 2 + step / 10}
+                )
             run.log(
                 {
                     "samples": trackio.Image(str(image_path)),
@@ -76,6 +80,9 @@ def seed(directory: Path):
                 file, name="evaluation-config", type="config", aliases=["latest"]
             )
             run.finish()
+    from trackio.sqlite_storage import SQLiteStorage
+
+    SQLiteStorage.init_db("empty-demo")
 
 
 if __name__ == "__main__":

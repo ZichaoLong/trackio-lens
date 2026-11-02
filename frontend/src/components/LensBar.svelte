@@ -30,5 +30,5 @@
   .build {font:10px ui-monospace,monospace;color:var(--body-text-color-subdued,#596579);}
   .notice {padding:8px 16px;background:var(--background-fill-secondary,#eef2ff);font-size:13px;}
   .error {color:#b42318;}
-  @media(max-width:768px) {.lens-bar{gap:8px;padding:4px 10px}.build{display:none}button{min-height:36px}.sync-status{font-size:11px}}
+  @media(max-width:768px) {.lens-bar{gap:8px;padding:4px 10px 4px 44px}.build{display:none}button{min-height:36px}.sync-status{font-size:11px}}
 </style>

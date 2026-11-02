@@ -127,6 +127,7 @@
     padding: 20px 24px;
     overflow-y: auto;
     flex: 1;
+    min-width: 0;
   }
   .page-title {
     color: var(--body-text-color, #1f2937);
@@ -175,6 +176,7 @@
   .file-name:hover {
     color: var(--color-accent, #f97316);
   }
+  .file-name {min-width:0;overflow-wrap:anywhere;}
   .file-icon {
     font-size: 14px;
     flex-shrink: 0;

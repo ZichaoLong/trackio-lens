@@ -60,8 +60,14 @@ projects = client.predict(api_name="/get_all_projects")
 
 HTTP 写入通过同一适配器传 `write_token=`；直接 HTTP 调用也可同时发送这两个 header。浏览器默认只查看，保留官方写入边界。上游 SDK/CLI 直接指定 `server_url` 不会自动添加 Lens 读取凭据；需要 HTTP 的程序使用该适配器或显式 headers。普通同账号的本地 `trackio.init()` 继续直接记录原数据目录，不需读取 token，不修改训练环境。
 
+CLI 可用 `trackio-lens api --url URL --credentials /private/initial-access.json --api get_all_projects`，参数从 `--params-file FILE` 读取；写入另传 `--write-token-file FILE`。凭据内容不进入命令行参数或 URL。
+
 匿名仅允许 `/__lens/login` 登录页面/提交和 `/healthz` 最小健康检查；静态资源、版本、API、文件、媒体、产物、兼容入口、WebSocket 均在边界内。目标隔离普通其他系统账号，不承诺隔离 root 或控制实例账号的进程。
 
 ## 本地验证
 
 `scripts/seed_demo.py EMPTY_DIRECTORY` 产生合成数据；目标必须为空，不能将它指向正式库。浏览器检查使用 1440px 桌面和 360/390/430px 触控模拟视口；模拟结果不等于真机或外部入口验收。首次升级先在一致性副本上验证旧表数据保持、数据库完整性以及旧 SDK 追加写入。验证记录应放在仓库外，公开状态只保存结论与覆盖范围。
+
+安装 Playwright Chromium 后运行 `.venv/bin/python scripts/check_demo.py --output /private/new-demo-directory`，自动创建合成实例并运行 [browser_check](../scripts/browser_check.py)。目录必须尚不存在；进程与端口随检查结束退出。该入口也用于 [CI](../.github/workflows/checks.yml)。
+
+历史兼容可重复运行 `scripts/check_compatibility.py --source /private/data --output /private/new-check --old-python /old/environment/bin/python`。它在线备份源库，核对新版本迁移前后的所有原表原列数据摘要，再用旧 SDK 在副本追加并由新版本读取。仅写入新建的副本目录；原数据和旧环境不修改。

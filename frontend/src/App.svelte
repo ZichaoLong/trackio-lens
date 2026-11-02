@@ -29,6 +29,7 @@
     setMediaDir,
   } from "./lib/api.js";
   import {
+    createPollingTask,
     getAppPollIntervalMs,
     isRateLimitCooldownActive,
     isTabHidden,
@@ -129,10 +130,11 @@
   let urlTick = $state(0);
   let alerts = $state([]);
   let pollTimer = $state(null);
+  const appRefreshTask = createPollingTask();
   let mutationStatus = $state({
     spaces: false,
-    allowed: true,
-    auth: "local",
+    allowed: false,
+    auth: "none",
   });
   let mutationPollTimer = $state(null);
   let appBootstrapReady = $state(false);
@@ -361,10 +363,12 @@
       if (!realtimeEnabled) return;
       if (isTabHidden()) return;
       if (isRateLimitCooldownActive()) return;
-      await refreshProjects();
-      await refreshRuns();
-      await refreshAlerts();
-      await refreshTabAvailability();
+      await appRefreshTask.run(async () => {
+        await refreshProjects();
+        await refreshRuns();
+        await refreshAlerts();
+        await refreshTabAvailability();
+      });
     }, getAppPollIntervalMs());
   }
 
@@ -377,7 +381,7 @@
         auth: s.auth ?? "none",
       };
     } catch {
-      mutationStatus = { spaces: false, allowed: true, auth: "local" };
+      mutationStatus = { spaces: false, allowed: false, auth: "unavailable" };
     }
   }
 
@@ -676,7 +680,7 @@
     />
   {/if}
 
-  <div class="main">
+  <div class="main" inert={narrowViewport && sidebarOpen && !sidebarHidden && (showSidebar || currentPage === "artifacts")}>
     <LensBar />
     {#if !navbarHidden}
       <Navbar

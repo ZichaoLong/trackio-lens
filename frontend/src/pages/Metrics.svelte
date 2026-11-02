@@ -643,6 +643,10 @@
     min-width: 0;
     width: 100%;
   }
+  @media (max-width: 768px) {
+    .metrics-page {padding:12px;min-width:0;}
+    .plot-grid, .plot-grid.auto {grid-template-columns:minmax(0, 1fr);}
+  }
   .subgroup-list {
     margin-top: 16px;
   }
