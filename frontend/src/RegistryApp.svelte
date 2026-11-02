@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import LensBar from "./components/LensBar.svelte";
   import { DEFAULT_LOGO_URLS } from "./components/Logo.svelte";
   import { getSettings } from "./lib/api.js";
   import { setColorPalette } from "./lib/stores.js";
@@ -26,6 +27,7 @@
 </script>
 
 <div class="registry-app">
+  <LensBar />
   <header class="app-header">
     <img src={darkMode ? logoUrls.dark : logoUrls.light} alt="Trackio" />
     <span>Registry</span>

@@ -1,0 +1,20 @@
+# 任务导航与事实来源
+
+行为目标见 [产品约定](product.md)，开发流程见 [开发规范](development.md)，实例操作见 [operations](operations.md)。本表指向实现，不重复定义配置默认值。
+
+| 常见任务 | 事实来源和负责入口 | 影响范围 / 验证 |
+| --- | --- | --- |
+| 修改会话有效期、Cookie、监听地址 | [Config](../trackio_lens/config.py)；实例 JSON（仓库外） | [Auth.session](../trackio_lens/auth.py) 同时约束已有会话；[认证测试](../tests/test_auth.py)，运行服务重启与会话验证 |
+| 登录、退出、撤销、程序认证 | [Auth](../trackio_lens/auth.py)、[LensApp.route](../trackio_lens/app.py)、[CLI](../trackio_lens/cli.py)、[LensAuth](../trackio_lens/client.py) | 全路由认证、CSRF、密码和 token 边界在 [test_auth](../tests/test_auth.py)；浏览器入口 [lens.js](../frontend/src/lib/lens.js) |
+| 增加/适配上游接口 | [upstream.build_backend](../trackio_lens/upstream.py)，官方包 `trackio.server` 和 `trackio.asgi_app` | [source.json](../upstream/source.json) 定位正式 tag；前端 [api.js](../frontend/src/lib/api.js) 是直接消费者；发布副本验证会运行真实后端 |
+| 修改图表排列、加载和平滑 | [Metrics](../frontend/src/pages/Metrics.svelte)、[plotLayout](../frontend/src/lib/plotLayout.js)、[LinePlot](../frontend/src/components/LinePlot.svelte) | [chartLifecycle](../frontend/src/lib/chartLifecycle.js) 负责可视范围/内存；[dataProcessing](../frontend/src/lib/dataProcessing.js) 及相邻 `.test.js` 负责缺失值和平滑；`npm --prefix frontend test` |
+| 手机侧栏、导航、长报告 | [App](../frontend/src/App.svelte)、[SidebarShell](../frontend/src/components/SidebarShell.svelte)、[Navbar](../frontend/src/components/Navbar.svelte)、[Reports](../frontend/src/pages/Reports.svelte) | [viewport](../frontend/src/lib/viewport.js)、[router.test](../frontend/src/lib/router.test.js)；合成数据浏览器验证，区别真机 |
+| 实验筛选与比较 | [runFilters](../frontend/src/lib/runFilters.js)、[Runs](../frontend/src/pages/Runs.svelte)、[RunComparer](../frontend/src/components/RunComparer.svelte) | 相邻单元/组件测试；配置筛选与 URL 恢复 |
+| 媒体、文件、产物、深链接 | [Media](../frontend/src/pages/Media.svelte)、[Files](../frontend/src/pages/Files.svelte)、[ArtifactsDetail](../frontend/src/pages/ArtifactsDetail.svelte) | 文件 API 仍由官方后端裁定路径；[LensApp](../trackio_lens/app.py) 精确区分 `/files` 页面与 `/file` API |
+| 升级上游 | [sync_upstream](../scripts/sync_upstream.py)、[source.json](../upstream/source.json)、[pyproject](../pyproject.toml)、[requirements.lock](../requirements.lock) | [test_sync](../tests/test_sync.py)，[升级步骤](upstream.md)；冲突时不改工作区 |
+| 构建、缓存、发布与恢复 | [build](../scripts/build.py)、[read_build](../trackio_lens/upstream.py)、[release](../scripts/release.py) | [test_release](../tests/test_release.py)、真实副本预检、部署后匿名/会话/资源哈希核验；运行身份来自认证后的 `/__lens/build` |
+| 备份与历史兼容 | [backup](../scripts/backup.py)，官方 `SQLiteStorage.migrate_all_projects` | SQLite online backup + integrity check；新/旧查看版本在副本上启动；记录端兼容另外以旧 SDK 在副本上写入验证 |
+
+前端目录保留上游组织方式。原样导入提交为 `68afeeb`；本地认证和部署代码不进入官方包目录，不修改 site-packages，不启动额外的裸后端。登录页由外层 ASGI 提供，前端挂载前取得会话与 CSRF；所有官方路由仍经过外层认证。
+
+会话 SQLite、凭据文件、真实实验数据库属于实例；不可从 Git HEAD 推断实例版本。构建身份由提交、上游记录和实际文件哈希生成；运行进程固定解析后的发布目录，切换链接不会让旧进程混用新资源。无 service worker。

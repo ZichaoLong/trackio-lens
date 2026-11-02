@@ -2,6 +2,7 @@
   import { compileConfigFilter, filterRunsByConfig, filterRunsByName, parseConfigFilters } from "./lib/runFilters.js";
   import { onMount } from "svelte";
   import Navbar from "./components/Navbar.svelte";
+  import LensBar from "./components/LensBar.svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import AlertPanel from "./components/AlertPanel.svelte";
   import Metrics from "./pages/Metrics.svelte";
@@ -676,6 +677,7 @@
   {/if}
 
   <div class="main">
+    <LensBar />
     {#if !navbarHidden}
       <Navbar
         {currentPage}
@@ -780,6 +782,7 @@
   .app {
     display: flex;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
   }
 
