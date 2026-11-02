@@ -12,6 +12,8 @@ def seed(directory: Path):
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.environ["TRACKIO_DIR"] = str(directory.resolve())
     os.environ["TRACKIO_STORAGE_MODE"] = "sqlite"
+    for key in ("TRACKIO_SERVER_URL", "TRACKIO_SPACE_ID", "TRACKIO_BUCKET_ID"):
+        os.environ.pop(key, None)
     import tempfile
 
     import trackio
