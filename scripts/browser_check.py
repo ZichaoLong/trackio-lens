@@ -124,6 +124,11 @@ def check(base, credentials_path, output, strict=False):
                 page.get_by_title("Collapse sidebar", exact=True).click()
             expect(page.locator(".run-comparer")).to_be_visible()
             expect(page.locator(".comparer-table")).to_contain_text("learning_rate")
+            full_value = page.locator(".full-value").first
+            full_value.locator("summary").click()
+            expect(full_value.locator("pre")).to_contain_text(
+                "A reproducible example with long configuration text"
+            )
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             if strict:
                 plot = page.locator(".plot-container").first

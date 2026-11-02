@@ -150,12 +150,14 @@ Props:
                       {#if cell.missing}
                         <span class="missing">{MISSING_MARKER}</span>
                       {:else}
-                        <span
-                          class="cell-text"
-                          title={truncate(cell.text, TITLE_LIMIT)}
-                        >
-                          {truncate(cell.text, DISPLAY_LIMIT)}
-                        </span>
+                        {#if cell.text.length > DISPLAY_LIMIT}
+                          <details class="full-value">
+                            <summary title="Expand full value">{truncate(cell.text, DISPLAY_LIMIT)}</summary>
+                            <pre>{cell.text}</pre>
+                          </details>
+                        {:else}
+                          <span class="cell-text" title={truncate(cell.text, TITLE_LIMIT)}>{cell.text}</span>
+                        {/if}
                         {#if cell.text !== ""}
                           <button
                             class="copy-btn"
@@ -328,6 +330,9 @@ Props:
     text-overflow: ellipsis;
     vertical-align: middle;
   }
+  .full-value {max-width:280px;white-space:normal;}
+  .full-value summary {cursor:pointer;overflow-wrap:anywhere;}
+  .full-value pre {white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-height:240px;overflow:auto;margin:8px 0 0;}
   .missing {
     color: var(--body-text-color-subdued, #9ca3af);
   }
