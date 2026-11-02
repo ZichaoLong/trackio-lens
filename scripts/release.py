@@ -179,14 +179,18 @@ def activate(root, candidate, previous, service, url, session):
         systemctl("restart", service)
         return probe(url, read_build(candidate / "source/frontend/dist"), session)
     except Exception as error:
-        systemctl("stop", service)
         if previous and (previous / "verified.json").is_file():
             switch(root, previous)
-            systemctl("start", service)
+            # Restart also cancels a candidate's pending automatic restart.
+            # A separate stop job can be canceled by systemd during crash loops;
+            # it must not prevent restoring the known authenticated executable.
+            systemctl("reset-failed", service)
+            systemctl("restart", service)
             probe(url, read_build(previous / "source/frontend/dist"), session)
             raise RuntimeError(
                 "Release failed; restored the verified authenticated release"
             ) from error
+        systemctl("--job-mode=replace-irreversibly", "stop", service)
         raise RuntimeError(
             "First activation failed; service stopped. The old anonymous service was NOT restored. Inspect private release logs, fix and redeploy."
         ) from error

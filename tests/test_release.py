@@ -33,8 +33,8 @@ def test_failed_release_restores_only_verified_authenticated_build(
     assert (tmp_path / "current").resolve() == previous
     assert commands == [
         ("restart", "test.service"),
-        ("stop", "test.service"),
-        ("start", "test.service"),
+        ("reset-failed", "test.service"),
+        ("restart", "test.service"),
     ]
 
 
@@ -49,7 +49,10 @@ def test_first_failure_stays_closed(tmp_path, monkeypatch):
         release.activate(
             tmp_path, candidate, None, "test.service", "http://unused", None
         )
-    assert commands == [("restart", "test.service"), ("stop", "test.service")]
+    assert commands == [
+        ("restart", "test.service"),
+        ("--job-mode=replace-irreversibly", "stop", "test.service"),
+    ]
 
 
 def test_systemd_accepts_generated_unit(tmp_path):
