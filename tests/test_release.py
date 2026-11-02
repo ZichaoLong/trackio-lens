@@ -50,3 +50,24 @@ def test_first_failure_stays_closed(tmp_path, monkeypatch):
             tmp_path, candidate, None, "test.service", "http://unused", None
         )
     assert commands == [("restart", "test.service"), ("stop", "test.service")]
+
+
+def test_systemd_accepts_generated_unit(tmp_path):
+    import shutil
+    import subprocess
+
+    if not shutil.which("systemd-analyze"):
+        pytest.skip("systemd tooling is unavailable")
+    source = tmp_path / "current/source"
+    source.mkdir(parents=True)
+    executable = tmp_path / "current/venv/bin/trackio-lens"
+    executable.parent.mkdir(parents=True)
+    executable.write_text("#!/bin/sh\nexit 0\n")
+    executable.chmod(0o700)
+    unit = tmp_path / "lens-test.service"
+    unit.write_text(release.unit_text(tmp_path, tmp_path / "config.json"))
+    subprocess.run(
+        ["systemd-analyze", "--user", "verify", str(unit)],
+        check=True,
+        capture_output=True,
+    )

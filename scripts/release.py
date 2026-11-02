@@ -206,7 +206,7 @@ After=network.target
 
 [Service]
 Type=exec
-WorkingDirectory={quoted(root / "current/source")}
+WorkingDirectory={str(root / "current/source").replace("%", "%%")}
 ExecStart={quoted(root / "current/venv/bin/trackio-lens")} serve --config {quoted(config)} --frontend {quoted(root / "current/source/frontend/dist")}
 Environment=PYTHONUNBUFFERED=1
 UMask=0077
@@ -302,7 +302,11 @@ def deploy(args):
         if unit.exists():
             shutil.copy2(unit, backup_dir / "previous.service")
         unit.parent.mkdir(parents=True, exist_ok=True)
-        unit.write_text(unit_text(root, config_path))
+        text = unit_text(root, config_path)
+        validation_unit = candidate / args.service
+        validation_unit.write_text(text.replace(str(root / "current"), str(candidate)))
+        run(["systemd-analyze", "--user", "verify", str(validation_unit)])
+        unit.write_text(text)
         unit.chmod(0o600)
         systemctl("daemon-reload")
         scheme = "https" if instance.get("ssl_certfile") else "http"
