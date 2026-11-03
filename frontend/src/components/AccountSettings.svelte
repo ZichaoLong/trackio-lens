@@ -7,6 +7,7 @@
   let password = $state("");
   let repeat = $state("");
   let busy = $state(false);
+  let administrator = $derived($connection.role === "admin");
   let error = $state("");
   let message = $state("");
   onMount(() => { username = $connection.username; });
@@ -18,8 +19,13 @@
       const response = await fetch("/__lens/account", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, current_password: currentPassword, password }) });
       const data = await response.json();
       if (!response.ok) throw Error(data.error);
+      const wasSetup = $connection.needsSetup;
       acceptSession(data); currentPassword = ""; password = ""; repeat = "";
-      message = "Account saved. Other devices have been signed out. Your program token is unchanged.";
+      message = "Account saved. Your other devices have been signed out.";
+      if (wasSetup) {
+        const next = new URL(new URLSearchParams(location.search).get("next") || "/", location.origin);
+        location.replace(next.origin === location.origin && !next.pathname.startsWith("/__lens/") ? next.pathname + next.search : "/");
+      }
     } catch (e) { error = e.message; }
     finally { busy = false; }
   }
@@ -39,13 +45,15 @@
 <section class="account" aria-label={$t("Account")}>
   <h3>{$t("Account")}</h3>
   <p>{$t("Use a personal password or passphrase to sign in on your other devices.")}</p>
+  <p>{$t(administrator ? "Administrator: you can change your username and password independently." : "Viewer: you can read all experiments and change your password. Your username is managed by the administrator.")}</p>
+  {#if $connection.needsSetup}<p>{$t(administrator ? "Choose your own administrator username and a new password." : "Replace your temporary password before opening experiments.")}</p>{:else if administrator}<p>{$t("Leave the new password fields blank to change only your username.")}</p>{/if}
   <form onsubmit={save}>
-    <label>{$t("Username")}<input bind:value={username} autocomplete="username" required maxlength="80" /></label>
+    <label>{$t("Username")}<input bind:value={username} autocomplete="username" readonly={!administrator} required maxlength="80" /></label>
     <label>{$t("Current password")}<input type="password" bind:value={currentPassword} autocomplete="current-password" required /></label>
-    <label>{$t("New password or passphrase")}<input type="password" bind:value={password} autocomplete="new-password" minlength="14" maxlength="256" required /></label>
-    <label>{$t("Repeat new password")}<input type="password" bind:value={repeat} autocomplete="new-password" minlength="14" maxlength="256" required /></label>
+    <label>{$t("New password or passphrase")}<input type="password" bind:value={password} autocomplete="new-password" minlength="14" maxlength="256" required={!administrator || $connection.needsSetup} /></label>
+    <label>{$t("Repeat new password")}<input type="password" bind:value={repeat} autocomplete="new-password" minlength="14" maxlength="256" required={!administrator || $connection.needsSetup} /></label>
     <p class="hint">{$t("Use 14–256 characters. You can use a memorable phrase or a password manager.")}</p>
-    <div class="actions"><button type="submit" disabled={busy}>{$t("Save account")}</button><button type="button" disabled={busy} onclick={revoke}>{$t("Sign out all devices")}</button></div>
+    <div class="actions"><button type="submit" disabled={busy}>{$t("Save account")}</button><button type="button" disabled={busy} onclick={revoke}>{$t("Sign out my devices")}</button></div>
     {#if error}<p class="error" role="alert">{$t(error)}</p>{/if}
     {#if message}<p role="status">{$t(message)}</p>{/if}
   </form>

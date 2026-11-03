@@ -29,7 +29,7 @@ MESSAGES = {
     "Exact main commit returned by check-updates": "check-updates 返回的完整 main 提交号",
     "New private result file; never overwrites an attempt": "新的私有结果文件，不覆盖已有尝试",
     "Follow complete lines until --done-file exists or interrupted": "持续读取完整行，直到完成标记出现或被中断",
-    "Password changed. All browser sessions revoked. Program token retained.": "密码已修改，管理员浏览器会话已撤销，程序 token 保留。",
+    "Administrator password changed. Administrator sessions revoked. Program token retained.": "密码已修改，管理员浏览器会话已撤销，程序 token 保留。",
     "All browser sessions revoked.": "所有浏览器会话已撤销。",
     "Use a password or passphrase of 14 to 256 characters": "请使用 14–256 个字符的密码或口令短语",
     "Username must contain between 1 and 80 characters": "用户名须为 1–80 个字符",
@@ -55,6 +55,22 @@ MESSAGES = {
     "Install from committed source; the checkout has uncommitted changes": "请从已提交源码安装，当前工作区存在未提交修改",
     "Existing data destination is retained; change instance configuration deliberately": "保留已有数据目录，请通过明确修改实例配置来迁移目的地",
 }
+
+MESSAGES.update(
+    {
+        "Account is unavailable": "账户不可用",
+        "Only the administrator can change their username": "仅管理员可修改自己的用户名",
+        "Set a new personal password before continuing": "请先设置新的个人密码",
+        "Choose a different password from the temporary password": "新密码不能与临时密码相同",
+        "Choose your own administrator username": "请选择不同于初始值的个人管理员用户名",
+        "Username is already in use": "用户名已被使用",
+        "No account changes": "账户没有修改",
+        "Account limit reached": "账户数量已达上限",
+        "Select an existing viewer account": "请选择已有普通用户",
+        "Unsupported account action": "不支持此账户操作",
+        "Administrator access is required": "此操作需要管理员权限",
+    }
+)
 
 COMMANDS = {
     "init": ("Initialize the administrator", "初始化管理员"),
@@ -99,6 +115,12 @@ COMMANDS = {
 }
 
 ARGUMENTS = {
+    "root": ("Private release directory", "私有发布目录"),
+    "host": ("Listening address (default: loopback)", "监听地址（默认 loopback）"),
+    "port": ("Listening port", "监听端口"),
+    "service": ("Managed systemd user service", "受管理的 systemd 用户服务名"),
+    "command": ("Installed command path", "安装后的管理命令路径"),
+    "enable": ("Enable automatic startup", "启用自动启动"),
     "config": ("Private instance configuration", "私有实例配置文件"),
     "state-dir": ("Private account state directory", "私有账户状态目录"),
     "username": ("Administrator username", "管理员用户名"),

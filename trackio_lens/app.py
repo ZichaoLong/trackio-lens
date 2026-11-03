@@ -16,7 +16,7 @@ from starlette.responses import (
 
 from .auth import COOKIE, CSRF_HEADER, TOKEN_HEADER, Auth
 from .config import Config, private_path
-from .upstream import build_backend, read_build
+from .upstream import READ_APIS, build_backend, read_build
 
 
 class LensApp:
@@ -92,7 +92,7 @@ class LensApp:
     def session_response(self, session):
         token, csrf, expires = session
         response = JSONResponse(
-            {"csrf": csrf, "expires": expires, **self.auth.account()}
+            {**self.auth.session(token), "csrf": csrf, "expires": expires}
         )
         response.set_cookie(
             COOKIE,
@@ -133,10 +133,6 @@ class LensApp:
                 or request.headers.get("x-lens-login") != "1"
             ):
                 return JSONResponse({"error": "Invalid request origin"}, 403)
-            if self.auth.rate_limited():
-                return JSONResponse(
-                    {"error": "Too many attempts. Try again in five minutes."}, 429
-                )
             body = bytearray()
             async for chunk in request.stream():
                 body.extend(chunk)
@@ -149,6 +145,10 @@ class LensApp:
                     raise ValueError()
             except (ValueError, KeyError, TypeError):
                 return JSONResponse({"error": "Invalid credentials"}, 400)
+            if self.auth.rate_limited(username):
+                return JSONResponse(
+                    {"error": "Too many attempts. Try again in five minutes."}, 429
+                )
             session = await run_in_threadpool(self.auth.login, username, password)
             if not session:
                 return JSONResponse({"error": "Invalid username or password"}, 401)
@@ -177,11 +177,35 @@ class LensApp:
                 request.headers.get(CSRF_HEADER, ""), session["csrf"]
             ):
                 return JSONResponse({"error": "Invalid CSRF token or origin"}, 403)
+        request.scope["lens_role"] = session["role"] if session else "program"
         if path == "/__lens/session" and request.method == "GET":
-            return JSONResponse({**(session or {}), **self.auth.account()})
-        if path.startswith("/__lens/updates"):
             if program or not session:
                 return JSONResponse({"error": "A browser login is required"}, 403)
+            return JSONResponse(session)
+        if session and session["needs_setup"] and not program:
+            allowed = path in {
+                "/__lens/account",
+                "/__lens/logout",
+                "/settings",
+                "/__lens/build",
+            } or path.startswith("/assets/")
+            if not allowed:
+                if (
+                    request.method == "GET"
+                    and "text/html" in request.headers.get("accept", "")
+                    and not path.startswith(("/api/", "/__lens/"))
+                ):
+                    return RedirectResponse("/settings", 303)
+                return JSONResponse(
+                    {
+                        "error": "Complete your account setup before continuing",
+                        "setup_required": True,
+                    },
+                    403,
+                )
+        if path.startswith("/__lens/updates"):
+            if program or not session or session["role"] != "admin":
+                return JSONResponse({"error": "Administrator access is required"}, 403)
             from . import updates
 
             management = self.config.state_dir / "management.json"
@@ -217,7 +241,7 @@ class LensApp:
                     )
                 elif path == "/__lens/updates/repository":
                     password = values.get("current_password")
-                    if self.auth.rate_limited():
+                    if self.auth.rate_limited(session["username"]):
                         return JSONResponse(
                             {"error": "Too many attempts. Try again in five minutes."},
                             429,
@@ -245,14 +269,35 @@ class LensApp:
                     },
                     503,
                 )
+        if path == "/__lens/users":
+            if program or not session or session["role"] != "admin":
+                return JSONResponse({"error": "Administrator access is required"}, 403)
+            if request.method == "GET":
+                return JSONResponse({"users": self.auth.list_users()})
+            if request.method != "POST":
+                return JSONResponse({"error": "Method not allowed"}, 405)
+            if self.auth.rate_limited(session["username"]):
+                return JSONResponse(
+                    {"error": "Too many attempts. Try again in five minutes."}, 429
+                )
+            try:
+                values = await self.json_body(request)
+                user = await run_in_threadpool(
+                    self.auth.manage_viewer, values, values.get("current_password")
+                )
+                return JSONResponse({"user": user})
+            except PermissionError as error:
+                return JSONResponse({"error": str(error)}, 403)
+            except (ValueError, TypeError) as error:
+                return JSONResponse({"error": str(error)}, 400)
         if path in {"/__lens/account", "/__lens/account/revoke"}:
             if program or not session:
                 return JSONResponse({"error": "A browser login is required"}, 403)
             if path == "/__lens/account" and request.method == "GET":
-                return JSONResponse(self.auth.account())
+                return JSONResponse(self.auth.account(session["user_id"]))
             if request.method != "POST":
                 return JSONResponse({"error": "Method not allowed"}, 405)
-            if self.auth.rate_limited():
+            if self.auth.rate_limited(session["username"]):
                 return JSONResponse(
                     {"error": "Too many attempts. Try again in five minutes."}, 429
                 )
@@ -264,11 +309,11 @@ class LensApp:
                 if path.endswith("/revoke"):
                     if not await run_in_threadpool(
                         self.auth.check_password,
-                        self.auth.account()["username"],
+                        session["username"],
                         current,
                     ):
                         raise PermissionError("Current password is incorrect")
-                    self.auth.revoke()
+                    self.auth.revoke(user_id=session["user_id"])
                     response = JSONResponse({"ok": True})
                     response.delete_cookie(COOKIE, path="/")
                     return response
@@ -278,6 +323,7 @@ class LensApp:
                     values.get("password"),
                     current,
                     True,
+                    session["user_id"],
                 )
                 return self.session_response(renewed)
             except PermissionError as error:
@@ -295,12 +341,22 @@ class LensApp:
             return JSONResponse({"version": self.build["source_commit"]})
         if path == "/config.json":
             return JSONResponse({"mode": "live"})
-        if path.startswith("/api/") and path[5:].rstrip("/") in self.write_apis:
-            if not hmac.compare_digest(
-                request.headers.get("x-trackio-write-token", ""), self.write_token
-            ):
+        if path.startswith("/api/"):
+            api = path[5:].rstrip("/")
+            if api in self.write_apis:
+                if session and session["role"] == "viewer":
+                    return JSONResponse(
+                        {"error": "Viewer accounts cannot modify experiment data"}, 403
+                    )
+                if not hmac.compare_digest(
+                    request.headers.get("x-trackio-write-token", ""), self.write_token
+                ):
+                    return JSONResponse(
+                        {"error": "A separate Trackio write token is required"}, 403
+                    )
+            elif api not in READ_APIS:
                 return JSONResponse(
-                    {"error": "A separate Trackio write token is required"}, 403
+                    {"error": "API is not classified for this backend version"}, 403
                 )
         if path.startswith(
             ("/api/", "/artifact_blob/", "/static/trackio/")

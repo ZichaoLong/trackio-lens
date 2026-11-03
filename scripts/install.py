@@ -118,6 +118,19 @@ def main():
         help="Create private initial credentials instead of prompting for a password",
     )
     parser.add_argument("--enable", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument(
+        "--username",
+        help=choose(
+            "Initial administrator name (interactive installation prompts if absent)",
+            "初始管理员名，交互安装时未指定则询问",
+        ),
+    )
+    parser.add_argument(
+        "--completion",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=choose("Install completion for the login shell", "为登录 Shell 安装补全"),
+    )
     args = parser.parse_args()
     import re
 
@@ -167,11 +180,11 @@ def main():
         private_path(data, directory=True)
         if not (config.parent / "credentials.json").exists():
             if args.bootstrap_account:
-                initialize(config.parent)
+                initialize(config.parent, args.username or "admin")
             else:
                 from trackio_lens.cli import ask_password
 
-                username = input(tr("Account name: ")).strip()
+                username = args.username or input(tr("Account name: ")).strip()
                 initialize(config.parent, username, ask_password())
         private_json(
             config,
@@ -233,14 +246,15 @@ def main():
     management = json.loads(management_path.read_text())
     management["command"] = str(args.command.expanduser().absolute())
     private_json(management_path, management)
-    completion = install_completion(args.command.expanduser().absolute())
-    print(
-        choose(
-            "Completion installed (open a new shell): ",
-            "补全已安装（打开新终端后生效）：",
+    if args.completion:
+        completion = install_completion(args.command.expanduser().absolute())
+        print(
+            choose(
+                "Completion installed (open a new shell): ",
+                "补全已安装（打开新终端后生效）：",
+            )
+            + completion["completion_file"]
         )
-        + completion["completion_file"]
-    )
     if args.enable is True or (fresh and args.enable is None):
         run(["systemctl", "--user", "enable", args.service])
     elif args.enable is False:
@@ -263,6 +277,19 @@ def main():
                 f"安装器进程的 PATH 中没有 {args.command.parent}；若你的交互 Shell 也缺少它，可使用命令绝对路径。",
             )
         )
+    host = instance.get("host", "127.0.0.1")
+    host = "127.0.0.1" if host == "0.0.0.0" else "[::1]" if host == "::" else host
+    scheme = "https" if instance.get("ssl_certfile") else "http"
+    print(
+        choose("Local sign-in: ", "本机登录入口：")
+        + f"{scheme}://{host}:{instance.get('port', 7860)}/__lens/login"
+    )
+    print(
+        choose(
+            "Account settings: /settings; recovery: trackio-lens reset-password",
+            "账户设置：/settings；本机恢复：trackio-lens reset-password",
+        )
+    )
     initial = Path(instance["state_dir"]) / "initial-access.json"
     if initial.exists():
         print(

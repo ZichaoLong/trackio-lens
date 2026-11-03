@@ -33,3 +33,10 @@ trackio-lens update-repository https://github.com/OWNER/REPOSITORY.git
 ## 开发导航
 
 改变远端/ref 校验与并发规则：`updates` 和 `test_updates`。改变会话或程序权限：`LensApp.route` 和 `test_auth`。改变构建/回退：`release`、`update_worker.recover` 和 `test_release`。界面与中文消息：`UpdateSettings.svelte` 和 `zh.json`。上游 Trackio 版本同步另见 [upstream](upstream.md)，不要把 Lens main 更新和上游正式发布同步混为一件事。
+
+
+## 账户与非交互更新
+
+仅已完成首次设置的管理员可检查/发布/恢复更新或更换仓库。普通用户及程序 token 直接调用对应 API 也被拒绝。升级不进入安装器的账户提问流程；账户、密码和角色保留在实例目录，正常升级保留有效会话。
+
+发布预检对数据与账户状态分别创建私有副本，以程序读取凭据验证实际构建和数据；它不替代浏览器会话回归。正式切换前同时保存账户快照。当前多账户格式保留管理员的原有哈希位置，普通用户和新会话独立存储；回退到旧单账户版本只允许管理员重新登录，不会把普通用户认作管理员。恢复使用当前凭据，不恢复可能已撤销的旧会话。

@@ -34,6 +34,31 @@ def check(base, credentials_path, output, strict=False):
             expect(page.get_by_role("alert")).to_contain_text("Invalid")
             page.get_by_label("Password", exact=True).fill(credentials["password"])
             page.get_by_role("button", name="Sign in", exact=True).click()
+            if width == 1440 and credentials_path.name == "initial-access.json":
+                expect(page.locator(".setup")).to_be_visible()
+                session = context.request.get(base + "/__lens/session").json()
+                assert (
+                    context.request.post(
+                        base + "/api/get_all_projects",
+                        headers={"X-Trackio-Lens-CSRF": session["csrf"]},
+                        data={},
+                    ).status
+                    == 403
+                )
+                page.get_by_label("Username", exact=True).fill("demo-owner")
+                page.get_by_label("Current password", exact=True).fill(
+                    credentials["password"]
+                )
+                page.get_by_label("New password or passphrase", exact=True).fill(
+                    "synthetic first personal password"
+                )
+                page.get_by_label("Repeat new password", exact=True).fill(
+                    "synthetic first personal password"
+                )
+                page.get_by_role("button", name="Save account", exact=True).click()
+                credentials.update(
+                    username="demo-owner", password="synthetic first personal password"
+                )
             expect(page.locator(".files-page")).to_be_visible()
             assert page.url.endswith("/files?project=lens-demo")
             for route, selector in (
@@ -245,6 +270,7 @@ def check(base, credentials_path, output, strict=False):
             page.goto(base + "/settings")
             expect(page.locator(".account")).to_be_visible()
             context.close()
+        check_accounts(browser, base, credentials, credentials_path.parent, output)
         for width in (1440, 390):
             context = browser.new_context(
                 viewport={"width": width, "height": 844}, locale="zh-CN"
@@ -297,6 +323,133 @@ def check(base, credentials_path, output, strict=False):
     print(
         f"Browser flows passed: {len(results)} route/viewport combinations, login failure/success/logout, deep links and reload, media and file reads."
     )
+
+
+def check_accounts(browser, base, owner, state, output):
+    """Real browser roles, bootstrap, scoped revocation and hostile API requests."""
+
+    def sign_in(page, username, password):
+        page.get_by_label("Username", exact=True).fill(username)
+        page.get_by_label("Password", exact=True).fill(password)
+        page.get_by_role("button", name="Sign in", exact=True).click()
+
+    for width in (1440, 390):
+        admin = browser.new_context(viewport={"width": width, "height": 844})
+        reader = browser.new_context(
+            viewport={"width": width, "height": 844},
+            is_mobile=width < 800,
+            has_touch=width < 800,
+        )
+        page, view = admin.new_page(), reader.new_page()
+        page.goto(base + "/settings")
+        sign_in(page, owner["username"], owner["password"])
+        users = page.locator(".users")
+        expect(users).to_be_visible()
+        # Only rename: omit the new password and prove the login password survives.
+        account = page.locator(".account")
+        renamed = "owner-" + str(width)
+        account.get_by_label("Username", exact=True).fill(renamed)
+        account.get_by_label("Current password", exact=True).fill(owner["password"])
+        account.get_by_role("button", name="Save account", exact=True).click()
+        expect(account.get_by_role("status")).to_contain_text("Account saved")
+        owner["username"] = renamed
+        username = "reader-" + str(width)
+        users.get_by_label("Administrator current password").fill(owner["password"])
+        users.get_by_label("New username", exact=True).fill(username)
+        users.get_by_label("Temporary password", exact=True).fill(
+            "synthetic viewer temporary password"
+        )
+        users.get_by_role("button", name="Create viewer", exact=True).click()
+        expect(users.get_by_role("status")).to_contain_text("Account saved")
+        view.goto(base + "/files?project=lens-demo")
+        sign_in(view, username, "synthetic viewer temporary password")
+        expect(view.locator(".setup")).to_be_visible()
+        assert view.get_by_label("Username", exact=True).evaluate("e => e.readOnly")
+        view.get_by_label("Current password", exact=True).fill(
+            "synthetic viewer temporary password"
+        )
+        view.get_by_label("New password or passphrase", exact=True).fill(
+            "synthetic viewer personal password"
+        )
+        view.get_by_label("Repeat new password", exact=True).fill(
+            "synthetic viewer personal password"
+        )
+        view.screenshot(path=str(output / f"{width}-viewer-first-setup.png"))
+        view.get_by_role("button", name="Save account", exact=True).click()
+        expect(view.locator(".files-page")).to_be_visible()
+        for route, selector in (
+            ("/runs", ".runs-table"),
+            ("/", ".plot-container"),
+            ("/reports", ".report-card"),
+            ("/media", ".media-page img"),
+            ("/files", ".file-list"),
+        ):
+            view.goto(base + route + "?project=lens-demo")
+            expect(view.locator(selector).first).to_be_visible(timeout=15000)
+            view.reload()
+            expect(view.locator(selector).first).to_be_visible(timeout=15000)
+            assert view.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        view.goto(base + "/settings")
+        expect(view.locator(".account")).to_be_visible()
+        assert (
+            view.locator(".users").count() == 0
+            and view.locator(".updates").count() == 0
+        )
+        session = reader.request.get(base + "/__lens/session").json()
+        headers = {"X-Trackio-Lens-CSRF": session["csrf"]}
+        for path in ("/__lens/users", "/__lens/updates/apply"):
+            assert (
+                reader.request.post(base + path, headers=headers, data={}).status == 403
+            )
+        assert (
+            reader.request.post(
+                base + "/api/delete_run",
+                headers={
+                    **headers,
+                    "X-Trackio-Write-Token": (state / "write-token")
+                    .read_text()
+                    .strip(),
+                },
+                data={
+                    "project": "lens-demo",
+                    "run": "experiment-0-long-name-learning-rate-comparison",
+                },
+            ).status
+            == 403
+        )
+        assert reader.request.post(
+            base + "/api/query_project",
+            headers=headers,
+            data={"project": "lens-demo", "query": "SELECT 1 AS proof"},
+        ).ok
+        assert not reader.request.post(
+            base + "/api/query_project",
+            headers=headers,
+            data={"project": "lens-demo", "query": "DELETE FROM runs"},
+        ).ok
+        row = users.locator("li").filter(has_text=username)
+        users.get_by_label("Administrator current password").fill(owner["password"])
+        row.get_by_role("button", name="Disable account", exact=True).click()
+        expect(row).to_contain_text("Disabled")
+        assert reader.request.get(base + "/__lens/session").status == 401
+        users.get_by_label("Administrator current password").fill(owner["password"])
+        row.get_by_role("button", name="Enable account", exact=True).click()
+        expect(row).to_contain_text("Enabled")
+        users.get_by_label("Administrator current password").fill(owner["password"])
+        users.get_by_label("Viewer to reset").select_option(label=username)
+        users.get_by_label("New temporary password").fill(
+            "synthetic reset temporary password"
+        )
+        users.get_by_role("button", name="Reset viewer password", exact=True).click()
+        expect(users.get_by_role("status")).to_contain_text("Account saved")
+        view.reload()
+        expect(view.get_by_role("button", name="Sign in", exact=True)).to_be_visible()
+        sign_in(view, username, "synthetic reset temporary password")
+        expect(view.locator(".setup")).to_be_visible()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.screenshot(path=str(output / f"{width}-account-management.png"))
+        reader.close()
+        admin.close()
 
 
 if __name__ == "__main__":

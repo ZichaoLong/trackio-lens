@@ -133,18 +133,8 @@ def probe(url, manifest, session, *, timeout=40, process=None):
         }
 
 
-def check_candidate(candidate, instance, data_copy, log, session):
-    manifest = read_build(candidate / "source/frontend/dist")
-    if manifest.get("development_build"):
-        raise ValueError("Cannot deploy a development build")
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
-    # Preflight must not migrate or mutate live account state. Share only the
-    # private verifier token; copied browser accounts are unreachable externally.
-    temporary_auth = tempfile.TemporaryDirectory(prefix="auth-", dir=data_copy.parent)
-    auth_copy = Path(temporary_auth.name)
-    state = Path(instance["state_dir"])
+def snapshot_accounts(state, auth_copy):
+    """Private credential files plus an online SQLite session snapshot."""
     for name in (
         "credentials.json",
         "initial-access.json",
@@ -164,6 +154,20 @@ def check_candidate(candidate, instance, data_copy, log, session):
         ):
             src.backup(dst)
         (auth_copy / "sessions.sqlite3").chmod(0o600)
+
+
+def check_candidate(candidate, instance, data_copy, log, session):
+    manifest = read_build(candidate / "source/frontend/dist")
+    if manifest.get("development_build"):
+        raise ValueError("Cannot deploy a development build")
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    # Preflight must not migrate or mutate live account state. Share only the
+    # private verifier token; copied browser accounts are unreachable externally.
+    temporary_auth = tempfile.TemporaryDirectory(prefix="auth-", dir=data_copy.parent)
+    auth_copy = Path(temporary_auth.name)
+    snapshot_accounts(Path(instance["state_dir"]), auth_copy)
     config = {
         **instance,
         "state_dir": str(auth_copy),
@@ -411,6 +415,8 @@ def deploy(args, progress=lambda phase, **details: None):
         backup_dir = root / "backups" / stamp
         backup(data, backup_dir / "data")
         shutil.copy2(config_path, backup_dir / "instance.json")
+        (backup_dir / "auth").mkdir(mode=0o700)
+        snapshot_accounts(state, backup_dir / "auth")
         unit = Path.home() / ".config/systemd/user" / args.service
         if unit.exists():
             shutil.copy2(unit, backup_dir / "previous.service")

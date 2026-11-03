@@ -11,8 +11,7 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
-from .auth import Auth
-from .config import Config, private_json
+from .config import private_json, private_path
 from .management import read_instance, read_management, service_action
 from .updates import load_json, repository_url, save_operation, update_dir
 
@@ -38,14 +37,11 @@ def recover(release, management, operation, log):
     host = "127.0.0.1" if host == "0.0.0.0" else "[::1]" if host == "::" else host
     scheme = "https" if instance.get("ssl_certfile") else "http"
     url = f"{scheme}://{host}:{instance.get('port', 7860)}"
-    auth = Auth(
-        Path(instance["state_dir"]),
-        instance.get(
-            "session_ttl_seconds",
-            Config.__dataclass_fields__["session_ttl_seconds"].default,
-        ),
-    )
-    session = auth.create_session()
+    access = Path(instance["state_dir"]) / "api-access.json"
+    private_path(access)
+    import json
+
+    session = json.loads(access.read_text())
     try:
         try:
             manifest = release.read_build(current / "source/frontend/dist")
@@ -86,7 +82,7 @@ def recover(release, management, operation, log):
         )
         return result
     finally:
-        auth.revoke(session[0])
+        session.clear()
 
 
 def execute(config, identifier):

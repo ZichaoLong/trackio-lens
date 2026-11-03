@@ -1,50 +1,11 @@
-import hashlib
 import json
 import time
 
 import pytest
-from starlette.applications import Starlette
-from starlette.responses import JSONResponse
-from starlette.routing import Route
 from starlette.testclient import TestClient
 
 from trackio_lens.app import LensApp
 from trackio_lens.auth import COOKIE, initialize
-from trackio_lens.config import Config
-
-
-@pytest.fixture
-def instance(tmp_path):
-    state, data, frontend = (tmp_path / part for part in ("state", "data", "frontend"))
-    state.mkdir(mode=0o700)
-    data.mkdir(mode=0o700)
-    frontend.mkdir()
-    initialize(state)
-    (frontend / "index.html").write_text("<!doctype html><p>Complete frontend</p>")
-    (frontend / "assets").mkdir()
-    (frontend / "assets/app-test.js").write_text("console.log('compiled');")
-    assets = {
-        str(p.relative_to(frontend)): hashlib.sha256(p.read_bytes()).hexdigest()
-        for p in frontend.rglob("*")
-        if p.is_file()
-    }
-    (frontend / "lens-build.json").write_text(
-        json.dumps(
-            {"source_commit": "a" * 40, "backend_version": "0.44.0", "assets": assets}
-        )
-    )
-    config = Config(state, data, frontend)
-
-    async def data_route(request):
-        return JSONResponse({"data": "protected"})
-
-    backend = Starlette(
-        routes=[Route("/{path:path}", data_route, methods=["GET", "POST", "DELETE"])]
-    )
-    app = LensApp(config, (backend, {"log", "delete_run", "upload"}, "write-secret"))
-    credentials = json.loads((state / "initial-access.json").read_text())
-    credentials.update(json.loads((state / "api-access.json").read_text()))
-    return app, credentials
 
 
 def login(client, credentials):
@@ -112,7 +73,7 @@ def test_login_logout_expiry_and_restart(instance):
         assert client.get("/version").status_code == 401
         headers = login(client, credentials)
         with app.auth.connect() as db:
-            db.execute("UPDATE sessions SET expires = ?", (time.time() - 1,))
+            db.execute("UPDATE user_sessions SET expires = ?", (time.time() - 1,))
         assert client.get("/__lens/session").status_code == 401
 
 
@@ -202,7 +163,7 @@ def test_cache_assets_revocation_and_fail_closed_build(instance):
 def test_login_rate_limit_and_file_permissions(instance):
     app, credentials = instance
     with TestClient(app) as client:
-        app.auth.attempts.extend([time.monotonic()] * 20)
+        app.auth.attempts.extend([time.monotonic()] * 200)
         assert (
             client.post(
                 "/__lens/login", json=credentials, headers={"X-Lens-Login": "1"}
@@ -222,7 +183,7 @@ def test_shortened_ttl_applies_to_existing_sessions(instance):
     app, _ = instance
     token, _, _ = app.auth.create_session()
     with app.auth.connect() as db:
-        db.execute("UPDATE sessions SET created = ?", (time.time() - 10,))
+        db.execute("UPDATE user_sessions SET created = ?", (time.time() - 10,))
     assert app.auth.session(token)
     assert Auth(app.config.state_dir, ttl=5).session(token) is None
 
@@ -287,7 +248,9 @@ def test_legacy_handoff_and_session_schema_remain_compatible(instance):
 
     app, credentials = instance
     state = app.config.state_dir
-    (state / "initial-access.json").write_text(json.dumps(credentials))
+    from trackio_lens.config import private_json
+
+    private_json(state / "initial-access.json", credentials)
     (state / "api-access.json").unlink()
     old, _, _ = app.auth.create_session()
     restarted = Auth(state, 3600)

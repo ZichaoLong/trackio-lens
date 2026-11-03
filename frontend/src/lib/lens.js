@@ -1,7 +1,7 @@
 import { get, writable } from "svelte/store";
 import { t } from "./i18n.js";
 
-export const connection = writable({ username: "", needsSetup: false, lastUpdated: null, errors: [], updateAvailable: false });
+export const connection = writable({ username: "", role: "viewer", needsSetup: false, lastUpdated: null, errors: [], updateAvailable: false });
 export const frontendCommit = import.meta.env.VITE_LENS_COMMIT || "development";
 let csrf = "";
 let originalFetch;
@@ -10,7 +10,7 @@ const failures = new Map();
 
 export function acceptSession(session) {
   csrf = session.csrf;
-  connection.update(value => ({ ...value, username: session.username, needsSetup: session.needs_setup }));
+  connection.update(value => ({ ...value, username: session.username, role: session.role, needsSetup: session.needs_setup }));
 }
 
 function signIn() {

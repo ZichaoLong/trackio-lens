@@ -44,11 +44,19 @@ def build_parser():
         command.add_argument("--state-dir", type=Path)
         command.add_argument("--config", type=Path, default=config_default)
         if name == "init":
-            command.add_argument("--username", default="admin")
-            command.add_argument(
+            command.add_argument("--username")
+            mode = command.add_mutually_exclusive_group()
+            mode.add_argument(
+                "--bootstrap-account",
+                action="store_true",
+                help=choose(
+                    "Generate private first-login credentials", "生成私有首次登录凭据"
+                ),
+            )
+            mode.add_argument(
                 "--set-password",
                 action="store_true",
-                help="Set a personal password interactively",
+                help=tr("Set a personal password interactively"),
             )
         if name == "reset-password":
             command.add_argument(
@@ -157,8 +165,17 @@ def execute(args):
             else args.config.parent
         )
         if args.command == "init":
+            if (state / "credentials.json").exists():
+                raise ValueError(
+                    "Credentials already exist; use reset-password to rotate"
+                )
+            username = args.username or (
+                "admin"
+                if args.bootstrap_account
+                else input(tr("Account name: ")).strip()
+            )
             initialize(
-                state, args.username, ask_password() if args.set_password else None
+                state, username, None if args.bootstrap_account else ask_password()
             )
             print(
                 choose(
@@ -167,7 +184,7 @@ def execute(args):
                 )
                 + str(state / "api-access.json")
             )
-            if not args.set_password:
+            if args.bootstrap_account:
                 print(
                     choose(
                         "Initial sign-in credentials (choose your own password in Settings): ",
@@ -183,7 +200,7 @@ def execute(args):
             )
             print(
                 tr(
-                    "Password changed. All browser sessions revoked. Program token retained."
+                    "Administrator password changed. Administrator sessions revoked. Program token retained."
                 )
             )
         elif args.command == "rotate-api-token":

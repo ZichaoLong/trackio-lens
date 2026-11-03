@@ -1,5 +1,7 @@
 <script>
   import { t, locale, setLocale } from "../lib/i18n.js";
+  import { connection } from "../lib/lens.js";
+  import UserSettings from "../components/UserSettings.svelte";
   import UpdateSettings from "../components/UpdateSettings.svelte";
   import AccountSettings from "../components/AccountSettings.svelte";
   import { copyTextToClipboard } from "../lib/clipboard.js";
@@ -105,7 +107,7 @@
     </select>
   </section>
   <AccountSettings />
-  <UpdateSettings />
+  {#if $connection.role === "admin"}<UserSettings /><UpdateSettings />{/if}
 
   <div class="two-col">
     <div class="col col-left">
@@ -152,6 +154,7 @@
         </div>
       </section>
 
+      {#if $connection.role === "admin"}
       <section class="settings-section">
         <h3 class="section-title">{$t("CLI Reference")}</h3>
         <p class="section-desc">
@@ -202,12 +205,14 @@
           {/each}
         </div>
       </section>
+      {/if}
     </div>
 
+    {#if $connection.role === "admin"}
     <div class="col col-right">
       <section class="settings-section">
         <h3 class="section-title">{$t("Agent Skills")}</h3>
-        <p class="section-desc">{$t("Install Trackio as a skill in your AI coding agent to query experiments with natural language.")}</p>
+        <p class="section-desc">{$t("Official Trackio agent skills are optional. Use your project recording workflow; connect to Lens only when explicitly requested.")}</p>
 
         <div class="agent-tabs">
           {#each agents as agent}
@@ -272,6 +277,7 @@
         </div>
       </section>
     </div>
+    {/if}
   </div>
 </div>
 

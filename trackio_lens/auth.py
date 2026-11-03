@@ -6,6 +6,7 @@ import hmac
 import json
 import secrets
 import sqlite3
+import threading
 import time
 from collections import deque
 from contextlib import contextmanager
@@ -34,7 +35,12 @@ def password_hash(password: str, salt: str) -> str:
 
 
 def validate_account(username, password):
-    if not isinstance(username, str) or not username.strip() or len(username) > 80:
+    if (
+        not isinstance(username, str)
+        or not username.strip()
+        or len(username) > 80
+        or any(ord(c) < 32 or ord(c) == 127 for c in username)
+    ):
         raise ValueError("Username must contain between 1 and 80 characters")
     if not isinstance(password, str) or not 14 <= len(password) <= 256:
         raise ValueError("Use a password or passphrase of 14 to 256 characters")
@@ -59,6 +65,8 @@ def initialize(
             "password_hash": password_hash(password, salt),
             "api_token_hash": digest(token),
             "needs_setup": bootstrap,
+            "schema": 2,
+            "viewers": {},
         },
         "initial-access.json": {
             "username": username,
@@ -87,12 +95,19 @@ class Auth:
         self.ttl = ttl
         if self.database.exists():
             private_path(self.database)
+        # Legacy sessions remain in their own table for an authenticated fallback.
+        # They are never interpreted as a new user session or assigned a role.
         with self.connect() as db:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, csrf TEXT NOT NULL, created REAL NOT NULL, expires REAL NOT NULL)"
             )
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS user_sessions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, csrf TEXT NOT NULL, created REAL NOT NULL, expires REAL NOT NULL)"
+            )
         self.database.chmod(0o600)
         self.attempts = deque()
+        self.account_attempts = {}
+        self.attempt_lock = threading.Lock()
         self.separate_access_files()
 
     @contextmanager
@@ -125,47 +140,172 @@ class Auth:
                 del values["api_token"]
                 private_json(initial, values)
 
-    def account(self):
-        c = self.credentials()
+    @staticmethod
+    def users(credentials):
+        # The single administrator retains the original top-level hash. An older
+        # verified release can authenticate only that administrator, never viewers.
+        return {"owner": credentials, **credentials.get("viewers", {})}
+
+    @staticmethod
+    def public(user_id, user):
         return {
-            "username": c["username"],
-            "needs_setup": c.get(
-                "needs_setup",
-                (self.credentials_path.parent / "initial-access.json").exists(),
-            ),
+            "user_id": user_id,
+            "username": user["username"],
+            "role": "admin" if user_id == "owner" else "viewer",
+            "enabled": user.get("enabled", True),
+            "needs_setup": user.get("needs_setup", False),
         }
+
+    def account(self, user_id="owner"):
+        user = self.users(self.credentials()).get(user_id)
+        if user is None:
+            raise PermissionError("Account is unavailable")
+        return self.public(user_id, user)
+
+    @staticmethod
+    def matches(user, password):
+        return (
+            isinstance(password, str)
+            and len(password) <= 256
+            and hmac.compare_digest(
+                password_hash(password, user["salt"]), user["password_hash"]
+            )
+        )
 
     def login(self, username, password):
         with self.account_lock():
-            return (
-                self.create_session()
-                if self.check_password(username, password)
-                else None
+            credentials = self.credentials()
+            selected = next(
+                (
+                    (uid, u)
+                    for uid, u in self.users(credentials).items()
+                    if u["username"] == username
+                ),
+                None,
             )
+            # Unknown usernames still pay one password hash; no enumeration API.
+            user = selected[1] if selected else credentials
+            valid = self.matches(user, password)
+            if selected and valid and user.get("enabled", True):
+                return self.create_session(selected[0])
+            self.failed_attempt(username)
+            return None
 
     def change_account(
-        self, username, password, current_password=None, renew_session=False
+        self,
+        username,
+        password,
+        current_password=None,
+        renew_session=False,
+        user_id="owner",
     ):
-        validate_account(username, password)
         with self.account_lock():
-            c = self.credentials()
-            if current_password is not None and not self.check_password(
-                c["username"], current_password
+            credentials = self.credentials()
+            user = self.users(credentials).get(user_id)
+            if not user or not user.get("enabled", True):
+                raise PermissionError("Account is unavailable")
+            if current_password is not None and not self.matches(
+                user, current_password
             ):
+                self.failed_attempt(user["username"])
                 raise PermissionError("Current password is incorrect")
-            c.update(
-                username=username.strip(),
-                salt=secrets.token_hex(16),
-                revoked_before=time.time(),
-                needs_setup=False,
+            username = user["username"] if username is None else username
+            if user_id != "owner" and username != user["username"]:
+                raise PermissionError(
+                    "Only the administrator can change their username"
+                )
+            if password is not None and not isinstance(password, str):
+                raise ValueError("Use a password or passphrase of 14 to 256 characters")
+            if not password:
+                if user.get("needs_setup") or user_id != "owner":
+                    raise ValueError("Set a new personal password before continuing")
+                # Validate username without replacing the existing password hash.
+                validate_account(username, "unused-validation-placeholder")
+            else:
+                validate_account(username, password)
+            if user.get("needs_setup") and current_password is not None:
+                if self.matches(user, password):
+                    raise ValueError(
+                        "Choose a different password from the temporary password"
+                    )
+                if user_id == "owner" and username.strip() == user["username"]:
+                    raise ValueError("Choose your own administrator username")
+            if any(
+                uid != user_id
+                and u["username"].casefold() == username.strip().casefold()
+                for uid, u in self.users(credentials).items()
+            ):
+                raise ValueError("Username is already in use")
+            if not password and username.strip() == user["username"]:
+                raise ValueError("No account changes")
+            user.update(
+                username=username.strip(), revoked_before=time.time(), needs_setup=False
             )
-            c["password_hash"] = password_hash(password, c["salt"])
-            private_json(self.credentials_path, c)
-            self.revoke()
-            (self.credentials_path.parent / "initial-access.json").unlink(
-                missing_ok=True
-            )
-            return self.create_session() if renew_session else None
+            if password:
+                user["salt"] = secrets.token_hex(16)
+                user["password_hash"] = password_hash(password, user["salt"])
+            private_json(self.credentials_path, credentials)
+            self.revoke(user_id=user_id)
+            if user_id == "owner":
+                (self.credentials_path.parent / "initial-access.json").unlink(
+                    missing_ok=True
+                )
+            return self.create_session(user_id) if renew_session else None
+
+    def list_users(self):
+        return [
+            self.public(uid, user)
+            for uid, user in self.users(self.credentials()).items()
+        ]
+
+    def manage_viewer(self, values, current_password):
+        with self.account_lock():
+            credentials = self.credentials()
+            if not self.matches(credentials, current_password):
+                self.failed_attempt(credentials["username"])
+                raise PermissionError("Current password is incorrect")
+            viewers = credentials.setdefault("viewers", {})
+            action = values.get("action")
+            if action == "create":
+                username, password = values.get("username"), values.get("password")
+                validate_account(username, password)
+                username = username.strip()
+                if any(
+                    u["username"].casefold() == username.casefold()
+                    for u in self.users(credentials).values()
+                ):
+                    raise ValueError("Username is already in use")
+                if len(viewers) >= 1000:
+                    raise ValueError("Account limit reached")
+                user_id = secrets.token_hex(16)
+                salt = secrets.token_hex(16)
+                viewers[user_id] = {
+                    "username": username,
+                    "salt": salt,
+                    "password_hash": password_hash(password, salt),
+                    "needs_setup": True,
+                    "enabled": True,
+                }
+            else:
+                user_id = values.get("user_id")
+                if not isinstance(user_id, str) or user_id not in viewers:
+                    raise ValueError("Select an existing viewer account")
+                user = viewers[user_id]
+                if action == "set-enabled" and type(values.get("enabled")) is bool:
+                    user["enabled"] = values["enabled"]
+                elif action == "reset-password":
+                    password = values.get("password")
+                    validate_account(user["username"], password)
+                    user["salt"] = secrets.token_hex(16)
+                    user["password_hash"] = password_hash(password, user["salt"])
+                    user["needs_setup"] = True
+                else:
+                    raise ValueError("Unsupported account action")
+                user["revoked_before"] = time.time()
+            credentials["schema"] = 2
+            private_json(self.credentials_path, credentials)
+            self.revoke(user_id=user_id)
+            return self.public(user_id, viewers[user_id])
 
     def rotate_api_token(self):
         with self.account_lock():
@@ -182,45 +322,77 @@ class Auth:
 
     def credentials(self):
         private_path(self.credentials_path)
-        return json.loads(self.credentials_path.read_text())
+        value = json.loads(self.credentials_path.read_text())
+        if value.get("schema", 1) not in {1, 2}:
+            raise ValueError("Unsupported account storage version")
+        if "owner" in value.get("viewers", {}):
+            raise ValueError("Invalid account storage")
+        value.setdefault(
+            "needs_setup",
+            (self.credentials_path.parent / "initial-access.json").exists(),
+        )
+        return value
 
-    def rate_limited(self) -> bool:
+    def failed_attempt(self, username):
         now = time.monotonic()
-        while self.attempts and self.attempts[0] < now - 300:
-            self.attempts.popleft()
-        if len(self.attempts) >= 20:
-            return True
-        self.attempts.append(now)
-        return False
+        key = digest(str(username).casefold())
+        with self.attempt_lock:
+            self.attempts.append(now)
+            # The global budget limits new buckets; prune old identities as well.
+            self.account_attempts = {
+                k: q
+                for k, q in self.account_attempts.items()
+                if q and q[-1] > now - 300
+            }
+            self.account_attempts.setdefault(key, deque()).append(now)
+
+    def rate_limited(self, username=None) -> bool:
+        now = time.monotonic()
+        with self.attempt_lock:
+            queues = [
+                self.attempts,
+                self.account_attempts.get(digest(str(username).casefold()), deque()),
+            ]
+            for queue in queues:
+                while queue and queue[0] < now - 300:
+                    queue.popleft()
+            return len(queues[0]) >= 200 or len(queues[1]) >= 20
 
     def check_password(self, username: str, password: str) -> bool:
-        c = self.credentials()
-        match = hmac.compare_digest(
-            password_hash(password, c["salt"]), c["password_hash"]
+        user = next(
+            (
+                u
+                for u in self.users(self.credentials()).values()
+                if u["username"] == username
+            ),
+            None,
         )
-        return match and hmac.compare_digest(username.encode(), c["username"].encode())
+        valid = bool(
+            user and user.get("enabled", True) and self.matches(user, password)
+        )
+        if not valid:
+            self.failed_attempt(username)
+        return valid
 
     def check_token(self, token: str) -> bool:
         return bool(token) and hmac.compare_digest(
             digest(token), self.credentials()["api_token_hash"]
         )
 
-    def create_session(self):
+    def create_session(self, user_id="owner"):
+        user = self.account(user_id)
+        if not user["enabled"]:
+            raise PermissionError("Account is unavailable")
         token, csrf, now = (
             secrets.token_urlsafe(32),
             secrets.token_urlsafe(32),
             time.time(),
         )
         with self.connect() as db:
-            db.execute("DELETE FROM sessions WHERE expires <= ?", (now,))
+            db.execute("DELETE FROM user_sessions WHERE expires <= ?", (now,))
             db.execute(
-                "INSERT INTO sessions (id, csrf, created, expires) VALUES (?, ?, ?, ?)",
-                (
-                    digest(token),
-                    csrf,
-                    now,
-                    now + self.ttl,
-                ),
+                "INSERT INTO user_sessions (id, user_id, csrf, created, expires) VALUES (?, ?, ?, ?, ?)",
+                (digest(token), user_id, csrf, now, now + self.ttl),
             )
         return token, csrf, now + self.ttl
 
@@ -229,20 +401,30 @@ class Auth:
             return None
         with self.connect() as db:
             row = db.execute(
-                "SELECT csrf, created, expires FROM sessions WHERE id = ?",
+                "SELECT user_id, csrf, created, expires FROM user_sessions WHERE id = ?",
                 (digest(token),),
             ).fetchone()
+        user = self.users(self.credentials()).get(row[0]) if row else None
         if (
-            row
-            and row[1] > self.credentials().get("revoked_before", 0)
-            and time.time() < min(row[2], row[1] + self.ttl)
+            user
+            and user.get("enabled", True)
+            and row[2] > user.get("revoked_before", 0)
+            and time.time() < min(row[3], row[2] + self.ttl)
         ):
-            return {"csrf": row[0], "expires": min(row[2], row[1] + self.ttl)}
+            return {
+                **self.public(row[0], user),
+                "csrf": row[1],
+                "expires": min(row[3], row[2] + self.ttl),
+            }
         return None
 
-    def revoke(self, token: str | None = None):
+    def revoke(self, token: str | None = None, *, user_id=None):
         with self.connect() as db:
-            if token is None:
-                db.execute("DELETE FROM sessions")
+            if token is not None:
+                db.execute("DELETE FROM user_sessions WHERE id = ?", (digest(token),))
+            elif user_id is not None:
+                db.execute("DELETE FROM user_sessions WHERE user_id = ?", (user_id,))
             else:
-                db.execute("DELETE FROM sessions WHERE id = ?", (digest(token),))
+                db.execute("DELETE FROM user_sessions")
+            if user_id == "owner" or (token is None and user_id is None):
+                db.execute("DELETE FROM sessions")

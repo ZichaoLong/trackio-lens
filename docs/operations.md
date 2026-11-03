@@ -4,7 +4,7 @@
 
 ## 创建实例
 
-独立安装优先使用仓库的 `./install.sh --python /absolute/stable/python3`（Python 3.11+，Node 22.13+ 和 npm）。安装器只接受已提交源码，在私有发布目录构建完整前端、安装锁定依赖、验证数据副本并发布。它不把 Lens 装进调用者的 Python 或训练环境。新实例交互设置账户，自动化安装可明确传 `--bootstrap-account` 生成私有首次登录文件。
+独立安装优先使用仓库的 `./install.sh --python /absolute/stable/python3`（Python 3.11+，Node 22.13+ 和 npm）。安装器只接受已提交源码，在私有发布目录构建完整前端、安装锁定依赖、验证数据副本并发布。它不把 Lens 装进调用者的 Python 或训练环境。新实例在终端设置管理员用户名和密码（无默认值）；可传 `--username NAME` 预填名称。自动化安装须明确传 `--bootstrap-account`，生成仅部署者可读的初始管理员凭据。已有实例升级不会重新询问或初始化账户。
 
 默认命令位于 `~/.local/bin/trackio-lens`，可从任意工作目录执行。将该目录加入个人 PATH 后使用 `trackio-lens start`、`stop`、`restart`、`status`、`enable`、`disable`。`enable/disable` 只改变自动启动，`start/stop` 只改变当前运行。新实例默认 enable；Linux 用户服务随用户管理器启动，脱离登录运行需本站已启用 linger。`status` 区分 systemd 状态与已安装构建，不把目录身份当成实际 HTTP 核验。
 
@@ -32,9 +32,9 @@ mkdir -p "$HOME/.config/trackio-lens" "$HOME/.local/share/trackio-lens/data"
 
 未列出的默认值只在 [Config](../trackio_lens/config.py) 维护。端口被占用会失败，绝不自动换端口。直接 HTTPS 可配置 `ssl_certfile`、`ssl_keyfile`，并启用 `cookie_secure`。经 HTTPS 反向代理也可启用该选项；监听 HTTP 的 IP＋端口实例需要关闭它。不会信任 `X-Forwarded-*` 来豁免认证。对外传输密码时使用 HTTPS；loopback HTTP 可用于本机或已有安全隧道。
 
-首次密码在私有的 `initial-access.json`，程序读取 token 单独保存在 `api-access.json`。仅在实例账号的本地终端读取，不贴到日志/聊天/URL。服务使用 `credentials.json` 中的 scrypt 哈希认证，修改初始交付文件不改变密码。旧实例首次加载新版时分离交付文件，但不轮换密码、token 或会话。
+仅无人值守初始化的首次密码保存在私有 `initial-access.json`；交互初始化不保存明文密码。程序读取 token 单独保存在 `api-access.json`。仅在实例账号的本地终端读取，不贴到日志/聊天/URL。服务使用 `credentials.json` 中的 scrypt 哈希认证，修改初始交付文件不改变密码。旧交付文件中的程序 token 可自动分离保存，不轮换 token；单账户至多账户的会话变化见下文。
 
-设置页可用当前密码修改账户名和密码（支持密码管理器与口令短语）；改密撤销其他设备会话，当前设备取得新会话，初始明文交付文件删除。`trackio-lens reset-password` 提供本机交互恢复并撤销全部浏览器会话；`revoke-sessions` 只撤销会话。`rotate-api-token` 将新程序凭据保存到 `api-access.json`，旧 token 即失效。密码重置不轮换程序 token。管理命令使用安装器配置的实例，可用 `--config` 或 `--state-dir` 明确选择其他实例。
+设置页允许管理员用当前密码分别修改用户名或密码（支持密码管理器与口令短语）；仅改名时留空新密码。保存撤销该账户的其他设备会话，当前设备取得新会话；其他账户不受影响。初始明文交付文件在首次设置后删除。`trackio-lens reset-password` 提供本机交互恢复并撤销管理员会话；`revoke-sessions` 撤销所有账户的浏览器会话。`rotate-api-token` 将新程序凭据保存到 `api-access.json`，旧 token 即失效。密码重置不轮换程序 token。管理命令使用安装器配置的实例，可用 `--config` 或 `--state-dir` 明确选择其他实例。
 
 ## 构建、发布、恢复
 
@@ -92,4 +92,15 @@ CLI 可用 `trackio-lens api --url URL --credentials /private/api-access.json --
 
 `trackio-lens --help` 默认中文；用 `--lang en`（可放在子命令后）或 `TRACKIO_LENS_LANG=en` 切换英文。命令、参数、JSON 字段和机器状态值不翻译。`status` 等命令保持 JSON 输出，提示写到 stderr。SDK、systemd 和构建工具自身的日志保留原文。
 
-安装器会为当前登录 Shell 安装补全；也可执行 `trackio-lens completion install --shell bash`，或选择 `zsh` / `fish`。打开新终端后生效。`completion bash` 等只输出脚本，适合自管 Shell 配置。补全从当前版本解析器获得命令和参数，不读凭据、不调用服务或网络；升级后自动跟随命令定义。安装保留已有 Shell 配置和 PATH；安装器进程的 PATH 不代表 SSH 交互终端。
+安装器会为当前登录 Shell 安装补全（自管配置或隔离验收可用 `--no-completion`）；也可执行 `trackio-lens completion install --shell bash`，或选择 `zsh` / `fish`。打开新终端后生效。`completion bash` 等只输出脚本，适合自管 Shell 配置。补全从当前版本解析器获得命令和参数，不读凭据、不调用服务或网络；升级后自动跟随命令定义。安装保留已有 Shell 配置和 PATH；安装器进程的 PATH 不代表 SSH 交互终端。
+
+
+## 管理员、普通用户与首次登录
+
+统一登录地址是 `/__lens/login`，账户与应用更新位于 `/settings`。安装器打印本机地址和恢复命令，不输出密码。新实例默认交互设置管理员；显式 `--bootstrap-account` 生成临时 `admin`（可用 `--username` 指定）及随机密码到私有 `initial-access.json`。首次登录必须选择个人管理员名和不同的新密码，完成前数据、文件、用户管理和更新 API 均不可用。没有账户文件时服务拒绝启动，不提供网页抢注管理员。
+
+管理员可以创建普通用户、停用/启用、设置新临时密码；这些操作要求管理员当前密码。临时密码通过部署者自己的私密方式交付，网页不提供密码查询。普通用户第一次登录必须换密码，之后只能改自己的密码，不能改用户名、管理他人、发布更新或写入实验；所有用户都能读取本实例全部实验、媒体和文件。停用或重置立即使该用户旧会话失效。`退出我的所有设备` 只作用于当前账户；本机 `revoke-sessions` 仍作用于全部用户。
+
+浏览器更新全程无终端交互；账户及会话位于发布目录之外。此次单账户转为固定管理员，旧格式会话不再接受，重新登录即可；之后正常重启和更新保留新格式有效会话。旧已验证版本回退时只接受管理员，普通用户暂时不可登录，不会把普通会话提升为管理员。发布前保存私有账户快照，预检只使用副本；失败不会恢复旧会话快照或覆盖新实验记录。
+
+查看者可执行 `ssh -N -L 17860:127.0.0.1:7860 user@deployment-host`，再访问 `http://127.0.0.1:17860` 并用自己的 Lens 账户登录。也可自行配置域名、HTTPS 和代理。SSH 凭据允许建立通道，Lens 账户决定网页权限；需要只读隔离时，SSH 授权不能同时赋予服务运行账户的完整 shell 或私有文件读取权限。可使用独立系统账户或只允许端口转发的 SSH 授权。用户自行维护的入口不属于安装器职责。

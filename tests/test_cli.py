@@ -113,3 +113,36 @@ def test_bash_and_zsh_complete_real_options(tmp_path):
             text=True,
         )
         assert "--events" in result.splitlines()
+
+
+def test_explicit_bootstrap_and_interactive_admin_initialization(tmp_path):
+    state = tmp_path / "bootstrap"
+    result = cli("init", "--state-dir", str(state), "--bootstrap-account")
+    assert result.returncode == 0
+    handoff = json.loads((state / "initial-access.json").read_text())
+    assert handoff["username"] == "admin"
+    assert handoff["password"] not in result.stdout + result.stderr
+    before = (state / "credentials.json").read_bytes()
+    assert cli("init", "--state-dir", str(state), "--bootstrap-account").returncode == 2
+    assert (state / "credentials.json").read_bytes() == before
+    personal = tmp_path / "personal"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "trackio_lens.cli",
+            "init",
+            "--state-dir",
+            str(personal),
+        ],
+        input="my-own-name\nsynthetic personal password\nsynthetic personal password\n",
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert not (personal / "initial-access.json").exists()
+    assert (
+        json.loads((personal / "credentials.json").read_text())["username"]
+        == "my-own-name"
+    )
+    assert "synthetic personal password" not in result.stdout + result.stderr

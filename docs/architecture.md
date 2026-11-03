@@ -5,6 +5,7 @@
 | 常见任务 | 事实来源和负责入口 | 影响范围 / 验证 |
 | --- | --- | --- |
 | 修改会话有效期、Cookie、监听地址 | [Config](../trackio_lens/config.py)；实例 JSON（仓库外） | [Auth.session](../trackio_lens/auth.py) 同时约束已有会话；[认证测试](../tests/test_auth.py)，运行服务重启与会话验证 |
+| 多账户、首次设置、角色与会话 | [Auth](../trackio_lens/auth.py) 保持单管理员及 viewers；独立 user_sessions 表绑定身份；[LensApp.route](../trackio_lens/app.py) 执行服务端权限；[READ_APIS](../trackio_lens/upstream.py) 是已审查读取操作 | [test_accounts](../tests/test_accounts.py) 覆盖越权、首次设置、改名、停用、独立撤销和旧会话拒绝；[AccountSetup](../frontend/src/components/AccountSetup.svelte)、[UserSettings](../frontend/src/components/UserSettings.svelte)、[浏览器检查](../scripts/browser_check.py) |
 | 登录、退出、撤销、程序认证 | [Auth](../trackio_lens/auth.py)、[LensApp.route](../trackio_lens/app.py)、[CLI](../trackio_lens/cli.py)、[LensAuth](../trackio_lens/client.py) | 全路由认证、CSRF、密码和 token 边界在 [test_auth](../tests/test_auth.py)；浏览器入口 [lens.js](../frontend/src/lib/lens.js) |
 | 安装、服务启停、自动启动、记录目的地 | [install](../scripts/install.py)、[management](../trackio_lens/management.py)、[CLI](../trackio_lens/cli.py)；实例 `management.json` 是安装信息源 | [test_management](../tests/test_management.py)、[verify_install](../scripts/verify_install.py)；[账户设置](../frontend/src/components/AccountSettings.svelte) 调用浏览器专用账户 API |
 | 命令行语言与自动补全 | [CLI](../trackio_lens/cli.py)、[cli_text](../trackio_lens/cli_text.py)、[completion](../trackio_lens/completion.py)；安装器负责用户 Shell 接入 | [test_cli](../tests/test_cli.py) 验证双语、JSON 稳定性、补全无副作用和真实 Bash/Zsh 补全 |
