@@ -142,7 +142,9 @@ def verify(config, output, commit):
         )
         updates = page.locator(".updates")
         updates.get_by_role("button", name="Check main for updates", exact=True).click()
-        expect(updates).to_contain_text(commit)
+        # The server gives the remote Git read 30 seconds; the ordinary DOM
+        # assertion timeout can expire while that successful read is pending.
+        expect(updates).to_contain_text(commit, timeout=40_000)
         updates.get_by_role(
             "button", name=re.compile("Install selected commit")
         ).click()
