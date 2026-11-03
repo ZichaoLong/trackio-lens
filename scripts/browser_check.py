@@ -265,6 +265,7 @@ def check(base, credentials_path, output, strict=False):
             expect(page.locator(".account")).to_be_visible()
             context.close()
         check_accounts(browser, base, credentials, credentials_path.parent, output)
+        check_run_management(browser, base, credentials, output)
         for width in (1440, 390):
             context = browser.new_context(
                 viewport={"width": width, "height": 844}, locale="zh-CN"
@@ -315,8 +316,130 @@ def check(base, credentials_path, output, strict=False):
         browser.close()
     (output / "results.json").write_text(json.dumps(results, indent=2) + "\n")
     print(
-        f"Browser flows passed: {len(results)} route/viewport combinations, login failure/success/logout, deep links and reload, media and file reads."
+        f"Browser flows passed: {len(results)} route/viewport combinations, login failure/success/logout, deep links and reload, media and file reads, administrator run rename/delete."
     )
+
+
+def check_run_management(browser, base, owner, output):
+    """Exercise real backend mutations on separate synthetic projects only."""
+    for width, language in ((1440, "en"), (390, "zh-CN")):
+        chinese = language == "zh-CN"
+        context = browser.new_context(
+            viewport={"width": width, "height": 844},
+            locale=language,
+            is_mobile=width < 800,
+            has_touch=width < 800,
+        )
+        page = context.new_page()
+        page.goto(base + "/runs")
+        page.get_by_label("用户名" if chinese else "Username", exact=True).fill(
+            owner["username"]
+        )
+        page.get_by_label("密码" if chinese else "Password", exact=True).fill(
+            owner["password"]
+        )
+        page.get_by_role(
+            "button", name="登录" if chinese else "Sign in", exact=True
+        ).click()
+        expect(
+            page.get_by_role(
+                "button", name="退出登录" if chinese else "Sign out", exact=True
+            )
+        ).to_be_visible()
+        session = context.request.get(base + "/__lens/session").json()
+        headers = {"X-Trackio-Lens-CSRF": session["csrf"]}
+
+        def api(name, params):
+            response = context.request.post(
+                base + "/api/" + name, headers=headers, data=params
+            )
+            assert response.ok, (name, response.status)
+            result = response.json()
+            assert "error" not in result, name
+            return result["data"]
+
+        assert api("get_run_mutation_status", {}) == {
+            "spaces": False,
+            "allowed": True,
+            "auth": "admin",
+        }
+        project = f"lens-mutation-demo-{width}"
+        names = ("rename-me", "delete-me", "batch-me", "keep-me")
+        for name in names:
+            api(
+                "log",
+                {
+                    "project": project,
+                    "run": name,
+                    "metrics": {"synthetic/loss": 0.25},
+                    "step": 0,
+                    "hf_token": None,
+                },
+            )
+
+        calls = []
+
+        def observe(request):
+            if request.url.endswith(("/api/delete_run", "/api/rename_run")):
+                assert "x-trackio-write-token" not in request.headers
+                assert "x-trackio-lens-csrf" in request.headers
+                calls.append(request.url.rsplit("/", 1)[-1])
+
+        page.on("request", observe)
+        page.goto(base + "/runs?project=" + project)
+        rows = page.locator(".runs-table tbody tr")
+        expect(rows).to_have_count(4)
+
+        def row(name):
+            return rows.filter(has=page.get_by_role("button", name=name, exact=True))
+
+        rename = row("rename-me")
+        rename.get_by_title("重命名" if chinese else "Rename", exact=True).click()
+        page.locator(".rename-input").fill("renamed-run")
+        page.locator(".rename-input").press("Enter")
+        expect(row("renamed-run")).to_have_count(1)
+        expect(page.locator(".runs-page [role='alert']")).to_have_count(0)
+        page.reload()
+        expect(row("renamed-run")).to_have_count(1)
+
+        def confirmation(dialog, targets, accept):
+            assert project in dialog.message
+            assert all(name in dialog.message for name in targets)
+            assert ("无法撤销" if chinese else "cannot be undone") in dialog.message
+            dialog.accept() if accept else dialog.dismiss()
+
+        page.once("dialog", lambda dialog: confirmation(dialog, ["delete-me"], False))
+        row("delete-me").get_by_title(
+            "删除" if chinese else "Delete", exact=True
+        ).click()
+        expect(row("delete-me")).to_have_count(1)
+        assert "delete_run" not in calls
+        page.once("dialog", lambda dialog: confirmation(dialog, ["delete-me"], True))
+        row("delete-me").get_by_title(
+            "删除" if chinese else "Delete", exact=True
+        ).click()
+        expect(rows).to_have_count(3)
+        targets = ["renamed-run", "batch-me"]
+        for name in targets:
+            row(name).get_by_role("checkbox").check()
+        page.once("dialog", lambda dialog: confirmation(dialog, targets, True))
+        page.locator(".bulk-delete").click()
+        expect(rows).to_have_count(1)
+        expect(row("keep-me")).to_be_visible()
+        expect(page.locator(".runs-page [role='alert']")).to_have_count(0)
+        page.reload()
+        expect(rows).to_have_count(1)
+        remaining = api("get_runs_for_project", {"project": project})
+        assert [run["name"] for run in remaining] == ["keep-me"]
+        logs = api("get_logs", {"project": project, "run": "keep-me"})
+        assert len(logs) == 1 and logs[0]["synthetic/loss"] == 0.25
+        assert calls.count("delete_run") == 3 and "rename_run" in calls
+        assert all(
+            cookie["name"] != "trackio_write_token" for cookie in context.cookies()
+        )
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.screenshot(path=str(output / f"{width}-administrator-runs.png"))
+        context.close()
 
 
 def check_accounts(browser, base, owner, state, output):
@@ -397,6 +520,13 @@ def check_accounts(browser, base, owner, state, output):
         ):
             view.goto(base + route + "?project=lens-demo")
             expect(view.locator(selector).first).to_be_visible(timeout=15000)
+            if route == "/runs":
+                expect(view.locator(".delete-btn").first).to_be_disabled()
+                expect(
+                    view.get_by_title(
+                        "Administrator access is required to rename runs"
+                    ).first
+                ).to_be_disabled()
             view.reload()
             expect(view.locator(selector).first).to_be_visible(timeout=15000)
             assert view.evaluate("document.documentElement.scrollWidth <= innerWidth")
@@ -408,6 +538,15 @@ def check_accounts(browser, base, owner, state, output):
         )
         session = reader.request.get(base + "/__lens/session").json()
         headers = {"X-Trackio-Lens-CSRF": session["csrf"]}
+        status = reader.request.post(
+            base + "/api/get_run_mutation_status",
+            headers={
+                **headers,
+                "X-Trackio-Write-Token": (state / "write-token").read_text().strip(),
+            },
+            data={},
+        )
+        assert status.ok and status.json()["data"]["allowed"] is False
         for path in ("/__lens/users", "/__lens/updates/apply"):
             assert (
                 reader.request.post(base + path, headers=headers, data={}).status == 403

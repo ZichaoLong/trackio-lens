@@ -106,7 +106,7 @@ def test_csrf_program_and_write_boundaries(instance):
             == 200
         )
         for api in ("log", "delete_run", "upload"):
-            assert client.post("/api/" + api, headers=headers).status_code == 403
+            assert client.post("/api/" + api, headers=headers).status_code == 200
         client.cookies.clear()
         assert (
             client.post(
@@ -131,6 +131,97 @@ def test_csrf_program_and_write_boundaries(instance):
             ).status_code
             == 200
         )
+
+
+def test_admin_write_authorization_stays_inside_backend_boundary(instance):
+    app, credentials = instance
+    backend, forwarded = app.backend, []
+
+    async def observe(scope, receive, send):
+        if scope["type"] == "http":
+            forwarded.append(scope)
+        await backend(scope, receive, send)
+
+    app.backend = observe
+    with TestClient(app) as client:
+        csrf = login(client, credentials)
+        for api in ("log", "delete_run", "rename_run", "upload"):
+            path = "/api/" + api
+            for headers in (
+                {},
+                {"X-Trackio-Lens-CSRF": "wrong"},
+                {**csrf, "Origin": "https://foreign.example"},
+                {**csrf, "Sec-Fetch-Site": "cross-site"},
+            ):
+                assert client.post(path, headers=headers).status_code == 403
+            for method in (client.get, client.head, client.delete):
+                assert method(path, headers=csrf).status_code == 405
+        assert not forwarded
+        assert client.post("/api/unknown_operation", headers=csrf).status_code == 403
+        for path in ("/api/delete_run", "/api/rename_run", "/api/upload"):
+            # A client never has to know or replace the backend's credential.
+            response = client.post(
+                path,
+                headers=[
+                    *csrf.items(),
+                    ("X-Trackio-Write-Token", "stale"),
+                    ("X-Trackio-Write-Token", "duplicate"),
+                ],
+            )
+            assert response.status_code == 200
+            assert [
+                value
+                for key, value in forwarded[-1]["headers"]
+                if key.lower() == b"x-trackio-write-token"
+            ] == [b"write-secret"]
+            assert "write-secret" not in response.text + str(response.headers)
+        assert client.post("/api/get_all_projects", headers=csrf).status_code == 200
+        assert b"x-trackio-write-token" not in dict(forwarded[-1]["headers"])
+        assert "trackio_write_token" not in client.cookies
+        count = len(forwarded)
+        assert client.post("/__lens/logout", headers=csrf).status_code == 200
+        assert client.post("/api/delete_run", headers=csrf).status_code == 401
+        assert len(forwarded) == count
+
+
+def test_program_token_cannot_borrow_admin_session_write_authority(instance):
+    app, credentials = instance
+    with TestClient(app) as client:
+        login(client, credentials)
+        program = {"X-Trackio-Lens-Token": credentials["api_token"]}
+        # Program authentication bypasses browser CSRF, so it must never gain
+        # implicit write authority from an accompanying administrator cookie.
+        for api in ("delete_run", "rename_run", "upload"):
+            assert client.post("/api/" + api, headers=program).status_code == 403
+            assert (
+                client.post(
+                    "/api/" + api,
+                    headers={**program, "X-Trackio-Write-Token": "wrong"},
+                ).status_code
+                == 403
+            )
+            assert (
+                client.post(
+                    "/api/" + api,
+                    headers={**program, "X-Trackio-Write-Token": "write-secret"},
+                ).status_code
+                == 200
+            )
+
+
+def test_unfinished_administrator_setup_cannot_mutate_experiments(instance):
+    from trackio_lens.config import private_json
+
+    app, credentials = instance
+    private_json(
+        app.auth.credentials_path, {**app.auth.credentials(), "needs_setup": True}
+    )
+    with TestClient(app) as client:
+        csrf = login(client, credentials)
+        for api in ("get_run_mutation_status", "log", "delete_run", "rename_run"):
+            response = client.post("/api/" + api, headers=csrf)
+            assert response.status_code == 403
+            assert response.json()["setup_required"]
 
 
 def test_cache_assets_revocation_and_fail_closed_build(instance):

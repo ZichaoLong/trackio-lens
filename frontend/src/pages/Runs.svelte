@@ -25,7 +25,7 @@
   } = $props();
 
   let deleting = $state(false);
-  let deleteError = $state("");
+  let mutationError = $state("");
   let selectedKeys = $state([]);
   let selectionProject = $state(null);
   let canMutateRuns = $derived(runMutationAllowed && !deleting);
@@ -138,7 +138,7 @@
   $effect(() => {
     selectionProject = project;
     selectedKeys = [];
-    deleteError = "";
+    mutationError = "";
     untrack(loadRuns);
   });
 
@@ -146,11 +146,11 @@
     if (!canMutateRuns || targets.length === 0) return;
     const targetProject = project;
     const message = targets.length === 1
-      ? `Delete run "${targets[0].name}"? This cannot be undone.`
-      : `Delete ${targets.length} selected runs? This cannot be undone.`;
+      ? $t('Delete run "{name}" from project "{project}"? This cannot be undone.', { name: targets[0].name, project: targetProject })
+      : $t('Delete {count} selected runs from project "{project}"?\n{names}\n\nThis cannot be undone.', { count: targets.length, project: targetProject, names: targets.map(run => run.name).join("\n") });
     if (!confirm(message)) return;
     deleting = true;
-    deleteError = "";
+    mutationError = "";
     renamingIndex = -1;
     const failed = [];
     for (const run of targets) {
@@ -163,7 +163,7 @@
     if (project === targetProject) {
       selectedKeys = failed.map(selectionKey);
       if (failed.length) {
-        deleteError = `Could not delete ${failed.length} of ${targets.length} runs. Refresh and try again.`;
+        mutationError = $t("Could not delete {failed} of {total} runs. Refresh and try again.", { failed: failed.length, total: targets.length });
       }
       await loadRuns();
       if (onRunsChanged) onRunsChanged();
@@ -173,6 +173,7 @@
 
   async function startRename(index, currentName) {
     if (!canMutateRuns) return;
+    mutationError = "";
     renamingIndex = index;
     renameValue = currentName;
     await tick();
@@ -192,8 +193,8 @@
       renamingIndex = -1;
       await loadRuns();
       if (onRunsChanged) onRunsChanged();
-    } catch (e) {
-      console.error("Failed to rename run:", e);
+    } catch {
+      mutationError = $t("Could not rename run. Refresh and try again.");
     }
   }
 
@@ -204,8 +205,8 @@
 </script>
 
 <div class="runs-page">
-  {#if deleteError}
-    <p role="alert" class="delete-error">{deleteError}</p>
+  {#if mutationError}
+    <p role="alert" class="delete-error">{mutationError}</p>
   {/if}
   {#if loading}
     <LoadingTrackio />
@@ -228,7 +229,7 @@
         class="bulk-delete"
         disabled={!canMutateRuns || selectedVisibleRuns.length === 0}
         onclick={() => handleDelete([...selectedVisibleRuns])}
-      >{deleting ? "Deleting…" : $t("Delete selected ({count})", {count: selectedVisibleRuns.length})}</button>
+      >{deleting ? $t("Deleting…") : $t("Delete selected ({count})", {count: selectedVisibleRuns.length})}</button>
     </div>
     <table class="runs-table">
       <thead>
@@ -270,7 +271,7 @@
               <div class="actions-wrap">
               <button
                 class="action-btn"
-                title={canMutateRuns ? $t("Rename") : $t("Sign in with Hugging Face (write access) to rename runs")}
+                title={runMutationAllowed ? $t("Rename") : $t("Administrator access is required to rename runs")}
                 disabled={!canMutateRuns}
                 onclick={() => startRename(i, run.name)}
               >
@@ -280,7 +281,7 @@
               </button>
               <button
                 class="action-btn delete-btn"
-                title={canMutateRuns ? $t("Delete") : $t("Sign in with Hugging Face (write access) to delete runs")}
+                title={runMutationAllowed ? $t("Delete") : $t("Administrator access is required to delete runs")}
                 disabled={!canMutateRuns}
                 onclick={() => handleDelete([run])}
               >

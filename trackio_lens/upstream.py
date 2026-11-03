@@ -69,7 +69,11 @@ def build_backend(config: Config, manifest: dict):
         allowed = request.scope.get("lens_role") != "viewer" and hmac.compare_digest(
             request.headers.get("x-trackio-write-token", ""), write_token
         )
-        return {"spaces": False, "allowed": allowed, "auth": "write_token"}
+        return {
+            "spaces": False,
+            "allowed": allowed,
+            "auth": "admin" if request.scope.get("lens_admin_write") else "write_token",
+        }
 
     app.state.api_registry["get_run_mutation_status"] = mutation_status
     return app, WRITE_APIS | {"upload"}, write_token

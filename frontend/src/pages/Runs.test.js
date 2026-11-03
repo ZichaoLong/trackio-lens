@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount, unmount, tick } from "svelte";
 import Runs from "./Runs.svelte";
 import RunsTestHarness from "./RunsTestHarness.svelte";
-import { deleteRun, getProjectSummary, getRunSummary, getRunArtifactCounts } from "../lib/api.js";
+import { deleteRun, renameRun, getProjectSummary, getRunSummary, getRunArtifactCounts } from "../lib/api.js";
+import { locale } from "../lib/i18n.js";
 
 vi.mock("../lib/api.js", () => ({
   deleteRun: vi.fn(),
@@ -30,6 +31,7 @@ async function click(element) {
 }
 
 beforeEach(() => {
+  locale.set("en");
   vi.resetAllMocks();
   vi.stubGlobal("confirm", vi.fn(() => true));
   target = document.createElement("div");
@@ -48,6 +50,7 @@ afterEach(async () => {
   if (component) await unmount(component);
   component = null;
   target.remove();
+  locale.set("en");
   vi.unstubAllGlobals();
 });
 
@@ -75,7 +78,7 @@ describe("bulk run deletion", () => {
     await click(selectAll());
     await click(deleteButton());
     await vi.waitFor(() => expect(deleteRun).toHaveBeenCalledTimes(2));
-    expect(confirm).toHaveBeenCalledExactlyOnceWith("Delete 2 selected runs? This cannot be undone.");
+    expect(confirm).toHaveBeenCalledExactlyOnceWith('Delete 2 selected runs from project "demo"?\nsame\nsame\n\nThis cannot be undone.');
     expect(records).toEqual([{ id: "c", name: "control" }]);
   });
 
@@ -141,6 +144,32 @@ describe("bulk run deletion", () => {
     await click(deleteButton());
     expect(confirm).not.toHaveBeenCalled();
     expect(deleteRun).not.toHaveBeenCalled();
+    expect(target.querySelector('[title="Administrator access is required to rename runs"]').disabled).toBe(true);
+    expect(target.querySelector('[title="Administrator access is required to delete runs"]').disabled).toBe(true);
+  });
+
+  it("translates confirmation and failures while keeping recorded names unchanged", async () => {
+    locale.set("zh-CN");
+    deleteRun.mockResolvedValue(false);
+    await render();
+    await click(target.querySelector(".delete-btn"));
+    await vi.waitFor(() => expect(target.querySelector('[role="alert"]').textContent).toBe("1 个运行中有 1 个未能删除，请刷新后重试。"));
+    expect(confirm).toHaveBeenCalledExactlyOnceWith("确定删除项目“demo”中的运行“same”？此操作无法撤销。");
+    expect(records).toHaveLength(3);
+  });
+
+  it("shows rename failures beside the run list", async () => {
+    renameRun.mockRejectedValue(new Error("unavailable"));
+    await render();
+    await click(target.querySelector('[title="Rename"]'));
+    const input = target.querySelector(".rename-input");
+    input.value = "new-name";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await tick();
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await vi.waitFor(() => expect(target.querySelector('[role="alert"]').textContent).toContain("Could not rename run"));
+    expect(renameRun).toHaveBeenCalledWith("demo", expect.objectContaining({ id: "a" }), "new-name");
+    expect(records[0].name).toBe("same");
   });
 });
 

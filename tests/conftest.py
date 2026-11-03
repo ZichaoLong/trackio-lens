@@ -39,7 +39,9 @@ def instance(tmp_path):
     backend = Starlette(
         routes=[Route("/{path:path}", data_route, methods=["GET", "POST", "DELETE"])]
     )
-    app = LensApp(config, (backend, {"log", "delete_run", "upload"}, "write-secret"))
+    app = LensApp(
+        config, (backend, {"log", "delete_run", "rename_run", "upload"}, "write-secret")
+    )
     credentials = {"username": "owner", "password": "synthetic administrator password"}
     credentials.update(json.loads((state / "api-access.json").read_text()))
     return app, credentials

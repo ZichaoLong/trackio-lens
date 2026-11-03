@@ -62,6 +62,19 @@ class LensApp:
 
         response = await self.route(request)
         if response is None:
+            if scope.get("lens_admin_write"):
+                # Only the authenticated browser administrator reaches this
+                # branch. Keep the official backend's credential server-side,
+                # and replace any stale or duplicate client-supplied value.
+                scope = {
+                    **scope,
+                    "headers": [
+                        (key, value)
+                        for key, value in scope["headers"]
+                        if key.lower() != b"x-trackio-write-token"
+                    ]
+                    + [(b"x-trackio-write-token", self.write_token.encode())],
+                }
             await self.backend(scope, receive, guarded_send)
         else:
             await response(scope, receive, guarded_send)
@@ -343,12 +356,15 @@ class LensApp:
             return JSONResponse({"mode": "live"})
         if path.startswith("/api/"):
             api = path[5:].rstrip("/")
+            browser_admin = bool(session and session["role"] == "admin" and not program)
             if api in self.write_apis:
+                if request.method != "POST":
+                    return JSONResponse({"error": "Method not allowed"}, 405)
                 if session and session["role"] == "viewer":
                     return JSONResponse(
                         {"error": "Viewer accounts cannot modify experiment data"}, 403
                     )
-                if not hmac.compare_digest(
+                if not browser_admin and not hmac.compare_digest(
                     request.headers.get("x-trackio-write-token", ""), self.write_token
                 ):
                     return JSONResponse(
@@ -358,6 +374,12 @@ class LensApp:
                 return JSONResponse(
                     {"error": "API is not classified for this backend version"}, 403
                 )
+            if (
+                browser_admin
+                and request.method == "POST"
+                and (api in self.write_apis or api == "get_run_mutation_status")
+            ):
+                request.scope["lens_admin_write"] = True
         if path.startswith(
             ("/api/", "/artifact_blob/", "/static/trackio/")
         ) or path in {"/api", "/file", "/version"}:

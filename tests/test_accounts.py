@@ -314,11 +314,29 @@ def test_viewer_read_only_own_password_and_unknown_api_boundary(instance):
         ):
             assert viewer.get(path).status_code == 403
             assert viewer.post(path, headers=viewer_csrf, json={}).status_code == 403
-        for api in ("log", "upload", "delete_run", "unknown_future_operation"):
+        for api in (
+            "log",
+            "upload",
+            "delete_run",
+            "rename_run",
+            "unknown_future_operation",
+        ):
             assert (
                 viewer.post(
                     "/api/" + api,
                     headers={**viewer_csrf, "X-Trackio-Write-Token": "write-secret"},
+                    json={},
+                ).status_code
+                == 403
+            )
+            assert (
+                viewer.post(
+                    "/api/" + api,
+                    headers={
+                        **viewer_csrf,
+                        "X-Trackio-Write-Token": "write-secret",
+                        "X-Trackio-Lens-Token": owner["api_token"],
+                    },
                     json={},
                 ).status_code
                 == 403

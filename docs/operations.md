@@ -70,7 +70,11 @@ client = remote_client("http://127.0.0.1:7860", credentials["api_token"])
 projects = client.predict(api_name="/get_all_projects")
 ```
 
-HTTP 写入通过同一适配器传 `write_token=`；直接 HTTP 调用也可同时发送这两个 header。浏览器默认只查看，保留官方写入边界。上游 SDK/CLI 直接指定 `server_url` 不会自动添加 Lens 读取凭据；需要 HTTP 的程序使用该适配器或显式 headers。普通同账号的本地 `trackio.init()` 继续直接记录原数据目录，不需读取 token，不修改训练环境。
+HTTP 写入通过同一适配器传 `write_token=`；直接 HTTP 调用也可同时发送这两个 header。上游 SDK/CLI 直接指定 `server_url` 不会自动添加 Lens 读取凭据；需要 HTTP 的程序使用该适配器或显式 headers。普通同账号的本地 `trackio.init()` 继续直接记录原数据目录，不需读取 token，不修改训练环境。
+
+管理员完成首次设置并登录后，在“运行”页可重命名、删除单个运行或勾选后批量删除。确认框列出项目和目标运行；操作失败在列表上方提示。服务端核验会话与 CSRF，内部为官方后端携带写入凭据，浏览器不用输入 token 或登录 Hugging Face。普通用户仅可查看；程序 token 不会因为同时携带管理员 cookie 而自动获得写入权限。
+
+运行删除遵循当前官方后端：移除对应指标、配置、系统指标、告警、轨迹及产物关联，保留产物版本并清除其生产者引用；不等同于清理所有媒体文件、训练日志或 checkpoint。训练进程可能继续向同一数据目录写入，网页删除不会停止训练。
 
 CLI 可用 `trackio-lens api --url URL --credentials /private/api-access.json --api get_all_projects`，参数从 `--params-file FILE` 读取；写入另传 `--write-token-file FILE`。凭据内容不进入命令行参数或 URL。
 
