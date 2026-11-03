@@ -25,4 +25,4 @@ try:
     for step in range(5):
         run.log({"train/loss": 1.0 / (step + 1)}, step=step)
 finally:
-    run.finish()
+    trackio.finish()

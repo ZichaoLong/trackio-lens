@@ -100,6 +100,7 @@ def test_cpp_offline_roundtrip_and_replay_is_a_fresh_projection(tmp_path):
         )
         assert result.returncode == 0, (result.stderr, report.read_text())
         record = json.loads(report.read_text())
+        assert json.loads(result.stdout) == record
         assert record["event_count"] == 5 and record["readback_matches"]
         ids.append(record["destination_run_id"])
     assert ids[0] != ids[1]

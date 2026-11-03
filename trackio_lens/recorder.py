@@ -234,7 +234,9 @@ def record(events, manifest_path, data_dir, report_path, follow=False, done_file
                     if report["event_count"] % 100 == 0:
                         save_report(report_path, report)
             finally:
-                run.finish()
+                # The public module function also clears the SDK's current run,
+                # preventing a second atexit finish after the JSON result prints.
+                trackio.finish()
             logs = SQLiteStorage.get_logs(
                 manifest["project"], report["destination_name"]
             )
