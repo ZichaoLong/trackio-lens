@@ -102,6 +102,9 @@ def verify(config, output, commit):
             viewer["password"]
         )
         viewer_page.get_by_role("button", name="Save account", exact=True).click()
+        # AccountSettings is also present in the setup screen. Wait for the
+        # completed setup navigation before saving the replacement cookie.
+        expect(viewer_page.locator(".setup")).not_to_be_visible()
         expect(viewer_page.locator(".account")).to_be_visible()
         assert viewer_page.locator(".users").count() == 0
         private_json(output / "viewer.json", viewer)
@@ -109,6 +112,11 @@ def verify(config, output, commit):
             admin.storage_state(),
             viewer_context.storage_state(),
         )
+        private_json(output / "admin-storage.json", admin_storage)
+        private_json(output / "viewer-storage.json", viewer_storage)
+        assert not viewer_context.request.get(base + "/__lens/session").json()[
+            "needs_setup"
+        ]
         owner_cookie = next(
             c["value"] for c in admin_storage["cookies"] if c["name"] == COOKIE
         )

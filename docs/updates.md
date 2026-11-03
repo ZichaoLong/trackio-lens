@@ -18,7 +18,7 @@ trackio-lens update-repository https://github.com/OWNER/REPOSITORY.git
 
 [updates](../trackio_lens/updates.py) 验证选择和单任务约束，然后启动独立的 systemd 用户服务。[update_worker](../trackio_lens/update_worker.py) 使用已安装的独立 Python 和 Node 工具位置，获取精确提交，再调用与本机发布共用的 [release.publish](../scripts/release.py)。它不依赖查看服务进程或浏览器存活，也不在正在运行的源码目录里 git pull。
 
-阶段状态依次为获取、构建与测试、副本兼容检查、正式备份、切换与核验。候选安装锁定依赖，执行 `pip check`、Python 测试、前端 lint/test/build，再验证真实数据副本和可用恢复版本。后端改变时还须通过 [SDK 兼容矩阵](recording.md#sdk-与数据库兼容)。切换后核对匿名拒绝、有效会话、认证数据、后端版本和 HTML/JS 哈希。
+阶段状态依次为获取、构建与测试、副本兼容检查、正式备份、切换与核验。候选安装锁定依赖，执行 `pip check`、Python 测试、前端 lint/test/build，再验证真实数据副本和可用恢复版本。后端改变时还须通过 [SDK 兼容矩阵](recording.md#sdk-与数据库兼容)。切换后以私有程序凭据核对匿名拒绝、认证数据、后端版本和 HTML/JS 哈希。有效浏览器会话另由升级验收验证，不能用程序 token 的成功代替。
 
 设置页分别显示当前页面和运行服务的源码身份；服务身份来自实际处理 HTTP 请求的进程，已安装目录的清单不会代替它。成功后页面显示“刷新以加载已验证版本”，普通更新保留有效会话和浏览器语言。可以关闭页面，稍后重新进入设置查看状态；重启过程可能短暂无法读取状态，页面会重试。更新不会修改 Caddy、SSH 隧道或域名配置。
 
@@ -40,3 +40,6 @@ trackio-lens update-repository https://github.com/OWNER/REPOSITORY.git
 仅已完成首次设置的管理员可检查/发布/恢复更新或更换仓库。普通用户及程序 token 直接调用对应 API 也被拒绝。升级不进入安装器的账户提问流程；账户、密码和角色保留在实例目录，正常升级保留有效会话。
 
 发布预检对数据与账户状态分别创建私有副本，以程序读取凭据验证实际构建和数据；它不替代浏览器会话回归。正式切换前同时保存账户快照。当前多账户格式保留管理员的原有哈希位置，普通用户和新会话独立存储；回退到旧单账户版本只允许管理员重新登录，不会把普通用户认作管理员。恢复使用当前凭据，不恢复可能已撤销的旧会话。
+
+
+隔离实例的完整网页升级与失败恢复可用 [verify_managed_update](../scripts/verify_managed_update.py) 重复验证。先将前一提交安装到全新测试目录，使用独立 loopback 端口及 `--bootstrap-account --no-enable --no-completion`，再写入公开合成样例。验收脚本检查目录和服务归属，执行首次账户设置、关闭浏览器后的固定提交更新、两类用户会话与刷新、受控启动失败及恢复；它不能用于正式实例。参数见脚本 `--help`，私有输出包括测试密码和 cookie，不应提交或分享。

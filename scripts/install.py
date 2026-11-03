@@ -209,7 +209,11 @@ def main():
     if not (bootstrap / "bin/python").exists():
         run([python, "-m", "venv", bootstrap])
     boot_python = bootstrap / "bin/python"
-    print(f"Preparing installer. Private log: {root / 'install.log'}", flush=True)
+    print(
+        choose("Preparing installer. Private log: ", "正在准备安装，私有日志：")
+        + str(root / "install.log"),
+        flush=True,
+    )
     with (root / "install.log").open("a") as log:
         run(
             [boot_python, "-m", "pip", "install", "-r", SOURCE / "requirements.lock"],

@@ -16,9 +16,13 @@ Install committed source with a stable Python 3.11+ interpreter and Node 22.13+:
 
 The installer builds an isolated release and a systemd user service. `start`, `stop`,
 `restart`, `enable` and `disable` manage that service from any directory. It never
-installs into a training environment. Set a personal password during installation,
-or change the bootstrap password in Settings. See [operations](docs/operations.md)
-for ports, existing instances, account recovery and deployment verification.
+installs into a training environment. Choose an administrator username and password
+in the terminal. Explicit unattended installs use `--bootstrap-account` and require
+personal credentials at first login. Administrators can create read-only viewers;
+viewers change only their own passwords. See [operations](docs/operations.md) for
+ports, existing instances, account recovery and deployment verification.
+CLI help defaults to Chinese (`--lang en` selects English); installation provides
+Bash, Zsh or Fish completion without changing PATH.
 The interface supports Chinese and English. [Recording](docs/recording.md) covers
 independent Python SDKs and C++ JSONL import; [updates](docs/updates.md) explains
 the web and CLI update workflow.

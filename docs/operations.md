@@ -6,7 +6,7 @@
 
 独立安装优先使用仓库的 `./install.sh --python /absolute/stable/python3`（Python 3.11+，Node 22.13+ 和 npm）。安装器只接受已提交源码，在私有发布目录构建完整前端、安装锁定依赖、验证数据副本并发布。它不把 Lens 装进调用者的 Python 或训练环境。新实例在终端设置管理员用户名和密码（无默认值）；可传 `--username NAME` 预填名称。自动化安装须明确传 `--bootstrap-account`，生成仅部署者可读的初始管理员凭据。已有实例升级不会重新询问或初始化账户。
 
-默认命令位于 `~/.local/bin/trackio-lens`，可从任意工作目录执行。将该目录加入个人 PATH 后使用 `trackio-lens start`、`stop`、`restart`、`status`、`enable`、`disable`。`enable/disable` 只改变自动启动，`start/stop` 只改变当前运行。新实例默认 enable；Linux 用户服务随用户管理器启动，脱离登录运行需本站已启用 linger。`status` 区分 systemd 状态与已安装构建，不把目录身份当成实际 HTTP 核验。
+默认命令位于 `~/.local/bin/trackio-lens`，可从任意工作目录执行。该目录已在个人 PATH 中时无需修改；否则按安装器提示添加。使用 `trackio-lens start`、`stop`、`restart`、`status`、`enable`、`disable`。`enable/disable` 只改变自动启动，`start/stop` 只改变当前运行。新实例默认 enable；Linux 用户服务随用户管理器启动，脱离登录运行需本站已启用 linger。`status` 区分 systemd 状态与已安装构建，不把目录身份当成实际 HTTP 核验。
 
 可配置 `--root`、`--config`、`--data-dir`、`--host`、`--port`、`--service` 和 `--command`；已有实例保留数据及账户。迁移已验证的旧 Lens 单元时明确传 `--migrate-service OLD.service --service trackio-lens.service`，仅停止检查过归属的单元，新单元实际 HTTP 验证失败则恢复旧单元。新安装不会接管无关服务。安装器的完整帮助为 `./install.sh --help`。
 
@@ -46,9 +46,9 @@ git push origin main
   --service trackio-lens.service
 ```
 
-这是部署授权下的操作，会替换指定的 **systemd user** 服务。首次执行前核实该服务确实拥有预期端口；脚本只管理指定服务，不终止未知端口占用者。Node/npm 必须在 PATH 中。
+这是部署授权下的操作，会替换指定的 **systemd user** 服务。首次执行前核实该服务确实拥有预期端口；脚本只管理指定服务，不终止未知端口占用者。已安装实例优先使用 `management.json` 登记的 Node 位置；首次手工部署需在 PATH 中提供 Node/npm。
 
-脚本克隆提交、安装锁定依赖、构建、运行 Python 测试，在独立 TCP 端口用受认证保护的候选实例读取数据库副本，再测试上一安全版本读取同一迁移后副本。候选退出后，对正式数据做新的在线备份，写服务单元、原子切换完整产物并重启。会话在切换前创建，切换后必须仍然有效；核验匿名拒绝、认证读取、后端版本和实际 HTML/JS 哈希。核验结果和日志写入实例发布根目录，`deployment.json` 是部署记录，实际 HTTP 身份才是当前运行证据。
+脚本克隆提交、安装锁定依赖、构建、运行 Python 测试，在独立 TCP 端口用受认证保护的候选实例读取数据库副本，再测试上一安全版本读取同一迁移后副本。候选退出后，对正式数据做新的在线备份，写服务单元、原子切换完整产物并重启。发布器以私有程序读取凭据核验匿名拒绝、认证数据、后端版本和实际 HTML/JS 哈希；账户预检使用副本，不创建或修改正式浏览器会话。会话保留由单独的浏览器升级验收覆盖。核验结果和日志写入实例发布根目录，`deployment.json` 是部署记录，实际 HTTP 身份才是当前运行证据。
 
 失败自动恢复已验证的认证版本；首次失败保持关闭，绝不恢复旧匿名服务。备份是逐数据库事务一致的快照，数据库间没有跨库事务，媒体在数据库后复制。恢复程序不覆盖正在被训练写入的数据。跨上游版本迁移必须额外确认旧记录端与新 schema 兼容；副本上启动旧查看版本只能证明读取/启动兼容，不能代替记录端验证。必要的数据恢复应先协调写入端并在新目录恢复，核对迁移后新增记录后切换，不能直接用旧备份覆盖正式库。
 
