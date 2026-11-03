@@ -53,16 +53,26 @@ def installed_build(root):
 def recording_info(config):
     instance = read_instance(config)
     management = Path(instance["state_dir"]) / "management.json"
-    build = (
-        installed_build(read_management(config)["root"])
-        if management.exists()
-        else None
-    )
+    installed = read_management(config) if management.exists() else None
+    build = installed_build(installed["root"]) if installed else None
+    resources = {}
+    if installed:
+        source = (Path(installed["root"]) / "current/source").resolve()
+        for name, relative in {
+            "recording_guide": "docs/recording.md",
+            "python_example": "examples/python/record_metrics.py",
+            "writer_sample": "examples/python/writer_sample.py",
+            "cpp_example": "examples/cpp/record_metrics.cpp",
+            "viewer_check": "scripts/check_viewer.py",
+        }.items():
+            if (source / relative).is_file():
+                resources[name] = str(source / relative)
     return {
         "destination_kind": "local",
         "data_dir": str(Path(instance["data_dir"]).resolve()),
         "storage_mode": "sqlite",
         "viewer": build,
+        "resources": resources,
         "explicit_recording_authorization_required": True,
         "environment": {
             "TRACKIO_DIR": str(Path(instance["data_dir"]).resolve()),

@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+from . import skills
 from .config import private_json, private_path
 from .management import read_instance, read_management, service_action
 from .updates import load_json, repository_url, save_operation, update_dir
@@ -53,6 +54,7 @@ def recover(release, management, operation, log):
             )
             if allowed:
                 result = release.probe(url, manifest, session, timeout=5)
+                result["integration_skill"] = skills.sync(root, current)
                 private_json(current / "verified.json", {**result, "reconciled": True})
                 private_json(
                     root / "deployment.json",
@@ -63,6 +65,7 @@ def recover(release, management, operation, log):
             pass
         if not (previous / "verified.json").is_file():
             service_action(management["config"], "stop")
+            skills.withdraw(root)
             raise ValueError("No verified authenticated fallback; service kept closed")
         copy = root / "recovery" / operation["id"] / "data"
         release.backup(Path(instance["data_dir"]), copy)

@@ -57,9 +57,15 @@ trackio-lens record \
 
 0.35 测试环境的已验证依赖组合在 [测试锁文件](../tests/fixtures/trackio-0.35.lock)。实测 0.35 配上解析得到的 huggingface-hub 1.33.0 会在导入时找不到 `CommitOperationAdd`；仅 `pip check` 不能发现此类 API 不兼容。测试环境固定为 1.16.4 后再做实际记录检查。该测试锁文件不是对训练环境的升级指令。正式 Lens 依赖仍由根目录 `requirements.lock` 管理。
 
-## 训练 skill 接入
+## 接入 skill
 
-已更新的 `run-ml-experiments` 将 Trackio 设为明确授权的可选适配器，Python 模板默认 `off`，通过实例命令发现目的地，并支持认证后的只读 HTTP 检查。可公开的差异保存在 [集成补丁](../integrations/run-ml-experiments.patch)；安装 Lens 不会自动安装或覆盖用户 skills。补丁面向已有 skill，应用前应先用 `git apply --check` 或等价工具检查版本差异。
+仓库维护极简 [use-trackio-lens](../skills/use-trackio-lens/SKILL.md)，安装器默认安装到 HOME 的公开可发现位置，选项见 [实例操作](operations.md#接入-skill-的安装)。它负责目的地发现、调用 SDK 接入检查和选择独立记录器，不要求个人实验 skill，也不要求训练代码依赖 Lens。用户明确选定 Lens 时使用；单独选择 Trackio 不代表选择 Lens。未选定时保留现有记录系统。
+
+`trackio-lens recording-info --json` 的 `resources` 返回当前已安装版本的记录指南、Python/C++ 样例、自定义检查样例和 HTTP 检查脚本位置。详细内容按需查找，无需开发 checkout，也不要在训练源码中固定这些安装路径。不同版本未提供的资源不会列出。
+
+需要从无浏览器主机核验查看服务时，使用返回的 `viewer_check` 脚本，传 `--url` 和 `--credentials /private/api-access.json`；可加 `--project NAME`。它只读取首页、同源资源和项目列表，拒绝跳转及 URL 内凭据，默认仅允许 loopback；明确指定其他地址时加 `--allow-remote`。这是可选的查看端检查，训练直接落盘不需要 HTTP token 或在线查看服务。
+
+个人 `run-ml-experiments` 保留研究、执行与原始记录政策，只需一条指向此 skill 的接入引用。本仓库不再提供修改个人规范的补丁；安装 Lens 不修改该个人 skill。
 
 ## 明确接入与轻量检查
 
@@ -75,4 +81,4 @@ trackio-lens record \
 
 特殊记录功能可复制 [最小项目样例](../examples/python/writer_sample.py)，实现 `write` 和 `verify` 两阶段，再传 `--sample /project/tests/lens_sample.py`：前者由训练解释器运行，后者由 Lens 解释器读回并断言。样例必须使用工具提供的 `TRACKIO_DIR`，不能硬编码正式目的地；它是用户选择执行的本机代码，不是沙箱。样例文件哈希进入缓存身份，样例导入的项目代码改变后应使用 `--force`。登记只把解释器加入通用升级矩阵，自定义功能仍由项目维护验证。
 
-公共训练 skill 负责如何选择记录方式、调用检查和保留原始结果；本仓库负责命令、场景、缓存及升级检查。可选展示失败时应单独报告，遵循项目的 `required` / `best-effort` 策略，不让研究任务无限扩展为追踪工具开发。
+本仓库维护接入 skill、命令、场景、缓存及升级检查；训练项目负责声明所选解释器和特殊功能样例。个人实验规范继续决定原始记录和研究执行方式。可选展示失败时应单独报告，遵循项目的 `required` / `best-effort` 策略，不让研究任务无限扩展为追踪工具开发。

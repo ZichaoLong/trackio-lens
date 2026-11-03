@@ -23,6 +23,11 @@ viewers change only their own passwords. See [operations](docs/operations.md) fo
 ports, existing instances, account recovery and deployment verification.
 CLI help defaults to Chinese (`--lang en` selects English); installation provides
 Bash, Zsh or Fish completion without changing PATH.
+It also installs the small [use-trackio-lens](skills/use-trackio-lens/SKILL.md)
+agent skill into `~/.agents/skills`; use `--no-skill` to skip it or `--skills-dir`
+to choose another parent directory. The skill follows the active release through
+updates and recovery. It applies when the user selects Lens and does not require
+a personal experiment-management skill.
 The interface supports Chinese and English. [Recording](docs/recording.md) covers
 independent Python SDKs and C++ JSONL import; [updates](docs/updates.md) explains
 the web and CLI update workflow.

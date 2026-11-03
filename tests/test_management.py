@@ -38,6 +38,18 @@ def test_recording_discovery_needs_no_running_service_or_credentials(managed):
     assert "token" not in json.dumps(info)
 
 
+def test_discovery_locates_resources_in_the_selected_release(managed):
+    config, root, _ = managed
+    for name in ("previous", "updated"):
+        source = root / name / "source"
+        guide = source / "docs/recording.md"
+        guide.parent.mkdir(parents=True)
+        guide.write_text("installed guide")
+        (root / "current").unlink(missing_ok=True)
+        (root / "current").symlink_to(root / name)
+        assert recording_info(config)["resources"] == {"recording_guide": str(guide)}
+
+
 def test_service_control_refuses_unowned_unit(managed, tmp_path, monkeypatch):
     config, root, _ = managed
     monkeypatch.setattr(Path, "home", lambda: tmp_path)

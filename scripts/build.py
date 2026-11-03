@@ -5,7 +5,11 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from trackio_lens.skills import source_manifest  # noqa: E402
 
 
 def build(root: Path, allow_dirty=False):
@@ -40,6 +44,7 @@ def build(root: Path, allow_dirty=False):
         "upstream_commit": source["commit"],
         "backend_version": source["backend_version"],
         "development_build": bool(status),
+        "integration_skill": source_manifest(root),
         "assets": assets,
     }
     (dist / "lens-build.json").write_text(json.dumps(manifest, indent=2) + "\n")

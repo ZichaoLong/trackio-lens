@@ -24,6 +24,7 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from backup import backup  # noqa: E402
 
+from trackio_lens import skills  # noqa: E402
 from trackio_lens.auth import COOKIE, TOKEN_HEADER  # noqa: E402
 from trackio_lens.config import private_path  # noqa: E402
 from trackio_lens.upstream import read_build  # noqa: E402
@@ -210,10 +211,13 @@ def switch(root, candidate):
 
 
 def activate(root, candidate, previous, service, url, session):
+    skills.preflight(root)
     switch(root, candidate)
     try:
         systemctl("restart", service)
-        return probe(url, read_build(candidate / "source/frontend/dist"), session)
+        result = probe(url, read_build(candidate / "source/frontend/dist"), session)
+        result["integration_skill"] = skills.sync(root, candidate)
+        return result
     except Exception as error:
         if previous and (previous / "verified.json").is_file():
             switch(root, previous)
@@ -223,10 +227,12 @@ def activate(root, candidate, previous, service, url, session):
             systemctl("reset-failed", service)
             systemctl("restart", service)
             probe(url, read_build(previous / "source/frontend/dist"), session)
+            skills.sync(root, previous)
             raise RuntimeError(
                 "Release failed; restored the verified authenticated release"
             ) from error
         systemctl("--job-mode=replace-irreversibly", "stop", service)
+        skills.withdraw(root)
         raise RuntimeError(
             "First activation failed; service stopped. The old anonymous service was NOT restored. Inspect private release logs, fix and redeploy."
         ) from error
@@ -341,6 +347,9 @@ def deploy(args, progress=lambda phase, **details: None):
     data = Path(instance["data_dir"])
     private_path(data, directory=True)
     private_path(state / "api-access.json")
+    skills.prepare(
+        root, getattr(args, "skill", None), getattr(args, "skills_dir", None)
+    )
     session = json.loads((state / "api-access.json").read_text())
     previous = (root / "current").resolve() if (root / "current").is_symlink() else None
     source = Path(
@@ -404,6 +413,7 @@ def deploy(args, progress=lambda phase, **details: None):
             run(["npm", "test"], cwd=candidate / "source/frontend", log=log)
             run([str(python), "-m", "pytest", "-q"], cwd=candidate / "source", log=log)
             print("Committed release built:", commit, flush=True)
+            skills.validate_release(candidate)
             progress("validating", source_commit=commit)
             copy = root / "validation" / stamp / "data"
             backup(data, copy)
@@ -494,6 +504,8 @@ if __name__ == "__main__":
         "--python", help="Stable Python 3.11+ interpreter for the isolated release"
     )
     parser.add_argument("--source", type=Path, help="Committed checkout to build")
+    parser.add_argument("--skill", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument("--skills-dir", type=Path)
     parser.add_argument(
         "--writer-python",
         action="append",

@@ -22,6 +22,8 @@ trackio-lens update-repository https://github.com/OWNER/REPOSITORY.git
 
 设置页分别显示当前页面和运行服务的源码身份；服务身份来自实际处理 HTTP 请求的进程，已安装目录的清单不会代替它。成功后页面显示“刷新以加载已验证版本”，普通更新保留有效会话和浏览器语言。可以关闭页面，稍后重新进入设置查看状态；重启过程可能短暂无法读取状态，页面会重试。更新不会修改 Caddy、SSH 隧道或域名配置。
 
+已启用的 `use-trackio-lens` 入口指向同一个 `current` 发布选择，包内文件由构建清单校验；成功发布和恢复后核对它与实际服务版本一致，保留跳过安装或自定义目录的选择。首次从尚未提供 skill 安装功能的旧版更新时，旧发布器不能创建新入口；用新版 `install.sh` 或直接发布一次建立受管入口，之后网页更新自动跟随。详见 [安装行为](operations.md#接入-skill-的安装)。
+
 ## 状态与恢复
 
 仓库设置、检查结果、每次操作的状态和私有日志保存在实例 state 目录，构建和备份仍在发布 root；密钥和会话不会进入构建。网页只返回阶段、提交与验证结论，不返回日志或私有路径。并发发布还受到实例 `.deploy.lock` 的约束。
@@ -42,4 +44,4 @@ trackio-lens update-repository https://github.com/OWNER/REPOSITORY.git
 发布预检对数据与账户状态分别创建私有副本，以程序读取凭据验证实际构建和数据；它不替代浏览器会话回归。正式切换前同时保存账户快照。当前多账户格式保留管理员的原有哈希位置，普通用户和新会话独立存储；回退到旧单账户版本只允许管理员重新登录，不会把普通用户认作管理员。恢复使用当前凭据，不恢复可能已撤销的旧会话。
 
 
-隔离实例的完整网页升级与失败恢复可用 [verify_managed_update](../scripts/verify_managed_update.py) 重复验证。先将前一提交安装到全新测试目录，使用独立 loopback 端口及 `--bootstrap-account --no-enable --no-completion`，再写入公开合成样例。验收脚本检查目录和服务归属，执行首次账户设置、关闭浏览器后的固定提交更新、两类用户会话与刷新、受控启动失败及恢复；它不能用于正式实例。参数见脚本 `--help`，私有输出包括测试密码和 cookie，不应提交或分享。
+隔离实例的完整网页升级与失败恢复可用 [verify_managed_update](../scripts/verify_managed_update.py) 重复验证。先将支持 skill 安装的前一提交安装到全新测试目录，使用独立 loopback 端口及 `--bootstrap-account --no-enable --no-completion --skills-dir /private/acceptance/skills`，skills 父目录也必须在验收 `--output` 内，再写入公开合成样例。验收脚本检查目录和服务归属，执行首次账户设置、关闭浏览器后的固定提交更新、两类用户会话与刷新、skill 随版本切换、受控启动失败及恢复；它不能用于正式实例。参数见脚本 `--help`，私有输出包括测试密码和 cookie，不应提交或分享。

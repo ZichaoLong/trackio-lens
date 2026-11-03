@@ -100,6 +100,14 @@ CLI 可用 `trackio-lens api --url URL --credentials /private/api-access.json --
 
 安装器会为当前登录 Shell 安装补全（自管配置或隔离验收可用 `--no-completion`）；也可执行 `trackio-lens completion install --shell bash`，或选择 `zsh` / `fish`。打开新终端后生效。`completion bash` 等只输出脚本，适合自管 Shell 配置。补全从当前版本解析器获得命令和参数，不读凭据、不调用服务或网络；升级后自动跟随命令定义。安装保留已有 Shell 配置和 PATH；安装器进程的 PATH 不代表 SSH 交互终端。
 
+## 接入 skill 的安装
+
+新安装默认将 [use-trackio-lens](../skills/use-trackio-lens/SKILL.md) 安装到 `~/.agents/skills/use-trackio-lens`；这是指向发布根目录 `current/source/skills/use-trackio-lens` 的受管链接，不依赖开发 checkout。发现它的代理可在用户选定 Lens 时自动使用，也可显式调用 `$use-trackio-lens`。代理可能需要新建会话或刷新 skill 列表才能发现新安装入口。
+
+`./install.sh --no-skill` 跳过安装；`--skills-dir /absolute/skills` 指定父目录（适合其他代理或隔离测试）；`--skill` 重新启用默认入口。直接 `scripts/release.py` 也支持这些参数，已有实例不传参数则保留选择。私有 `root/skill.json` 保存目的地和待清理的旧入口，不保存账户凭据。多个实例不能共占同一入口，应选择不同 skills 目录。
+
+发布前检查同名入口归属，拒绝覆盖非本实例创建的文件、目录或链接。首次实际 HTTP 核验通过后才创建入口；切换目录或禁用时仅删除本实例的受管链接。网页更新与恢复保留安装选择并同步版本，包内文件哈希随构建记录；恢复到尚未附带 skill 的早期版本会移除入口，重新升级后恢复。安装器不安装或修改个人 `run-ml-experiments`。详细使用见 [记录指南](recording.md#接入-skill)。
+
 
 ## 管理员、普通用户与首次登录
 

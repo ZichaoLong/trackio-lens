@@ -15,6 +15,7 @@ from pathlib import Path
 SOURCE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE))
 
+from trackio_lens import skills  # noqa: E402
 from trackio_lens.auth import Auth, initialize  # noqa: E402
 from trackio_lens.cli_text import Parser, choose, configure, tr  # noqa: E402
 from trackio_lens.completion import install as install_completion  # noqa: E402
@@ -131,6 +132,22 @@ def main():
         default=True,
         help=choose("Install completion for the login shell", "为登录 Shell 安装补全"),
     )
+    parser.add_argument(
+        "--skill",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=choose(
+            "Install the integration skill (default on new installations)",
+            "安装接入 skill（新安装默认启用，升级保留选择）",
+        ),
+    )
+    parser.add_argument(
+        "--skills-dir",
+        type=Path,
+        help=choose(
+            "Parent directory for the integration skill", "接入 skill 的安装父目录"
+        ),
+    )
     args = parser.parse_args()
     import re
 
@@ -167,6 +184,7 @@ def main():
     root, config = args.root.expanduser().resolve(), args.config.expanduser().absolute()
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     private_path(root, directory=True)
+    skills.prepare(root, args.skill, args.skills_dir)
     fresh = not config.exists()
     if fresh:
         config.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -259,6 +277,14 @@ def main():
             )
             + completion["completion_file"]
         )
+    skill_target = skills.settings(root)["destination"]
+    print(
+        choose("Integration skill: ", "接入 skill：") + skill_target
+        if skill_target
+        else choose(
+            "Integration skill installation is disabled.", "已跳过接入 skill 安装。"
+        )
+    )
     if args.enable is True or (fresh and args.enable is None):
         run(["systemctl", "--user", "enable", args.service])
     elif args.enable is False:

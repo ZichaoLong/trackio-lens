@@ -1,0 +1,6 @@
+interface:
+  display_name: "Use Trackio Lens"
+  short_description: "Connect existing experiment logging to Trackio Lens"
+  default_prompt: "Use $use-trackio-lens to connect this project's existing logging to the selected Lens instance."
+policy:
+  allow_implicit_invocation: true

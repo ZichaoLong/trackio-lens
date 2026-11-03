@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from release import probe  # noqa: E402
 
+from trackio_lens import skills  # noqa: E402
 from trackio_lens.config import private_path  # noqa: E402
 from trackio_lens.upstream import read_build  # noqa: E402
 
@@ -23,14 +24,24 @@ host = instance.get("host", "127.0.0.1")
 host = "127.0.0.1" if host == "0.0.0.0" else "[::1]" if host == "::" else host
 scheme = "https" if instance.get("ssl_certfile") else "http"
 try:
-    print(
-        json.dumps(
-            probe(
-                f"{scheme}://{host}:{instance.get('port', 7860)}",
-                read_build(args.root / "current/source/frontend/dist"),
-                session,
-            )
-        )
+    result = probe(
+        f"{scheme}://{host}:{instance.get('port', 7860)}",
+        read_build(args.root / "current/source/frontend/dist"),
+        session,
     )
+    selected = (args.root / "current").resolve()
+    skill_commit = skills.validate_release(selected)
+    preference = skills.settings(args.root)
+    destination = preference and preference["destination"]
+    installed = bool(destination and skill_commit)
+    if installed:
+        entry = Path(destination)
+        assert entry.is_symlink() and entry.readlink() == skills.link_target(args.root)
+        assert entry.resolve() == selected / "source" / skills.PACKAGE
+    result["integration_skill"] = {
+        "installed": installed,
+        "source_commit": skill_commit,
+    }
+    print(json.dumps(result))
 finally:
     session.clear()
