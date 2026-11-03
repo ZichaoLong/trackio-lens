@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import LoadingTrackio from "../components/LoadingTrackio.svelte";
   import { getMediaUrl, getTraces, getTraceSteps } from "../lib/api.js";
   import {
@@ -421,39 +422,39 @@
 <div class="traces-page">
   {#if !project}
     <div class="empty-state">
-      <h2>Select a project</h2>
-      <p>Pick a project to browse trace logs.</p>
+      <h2>{$t("Select a project")}</h2>
+      <p>{$t("Pick a project to browse trace logs.")}</p>
     </div>
   {:else if selectedRuns.length === 0}
     <div class="empty-state">
-      <h2>No runs selected</h2>
-      <p>Select one or more runs in the sidebar to browse traces.</p>
+      <h2>{$t("No runs selected")}</h2>
+      <p>{$t("Select one or more runs in the sidebar to browse traces.")}</p>
     </div>
   {:else}
     <div class="toolbar">
       <div class="search-wrap">
-        <input type="text" bind:value={search} placeholder="Search traces by request" />
+        <input type="text" bind:value={search} placeholder={$t("Search traces by request")} />
       </div>
       <label class="filter-wrap">
-        <span>Step:</span>
+        <span>{$t("Step:")}</span>
         <select bind:value={stepFilter}>
-          <option value="all">All steps ({totalCount})</option>
+          <option value="all">{$t("All steps (")}{totalCount})</option>
           {#each availableSteps as entry}
-            <option value={String(entry.step)}>Step {entry.step} ({entry.count})</option>
+            <option value={String(entry.step)}>{$t("Step")} {entry.step} ({entry.count})</option>
           {/each}
         </select>
       </label>
       <label class="filter-wrap">
-        <span>Sort:</span>
+        <span>{$t("Sort:")}</span>
         <select bind:value={sortBy}>
-          <option value="request_time_desc">Request time</option>
-          <option value="request_time_asc">Oldest first</option>
-          <option value="step_desc">Step descending</option>
-          <option value="step_asc">Step ascending</option>
+          <option value="request_time_desc">{$t("Request time")}</option>
+          <option value="request_time_asc">{$t("Oldest first")}</option>
+          <option value="step_desc">{$t("Step descending")}</option>
+          <option value="step_asc">{$t("Step ascending")}</option>
         </select>
       </label>
       <div class="count">
-        {activeTotal} trace{activeTotal === 1 ? "" : "s"}
+        {activeTotal} {$t("trace")}{activeTotal === 1 ? "" : "s"}
       </div>
     </div>
 
@@ -461,8 +462,8 @@
       <LoadingTrackio />
     {:else if traces.length === 0}
       <div class="empty-state">
-        <h2>No traces match the current filters</h2>
-        <p>Try a different search query, step, or run selection.</p>
+        <h2>{$t("No traces match the current filters")}</h2>
+        <p>{$t("Try a different search query, step, or run selection.")}</p>
       </div>
     {:else}
       <div class="traces-table-wrap" class:dim={loading}>
@@ -479,14 +480,14 @@
           </colgroup>
           <thead>
             <tr>
-              <th>Trace ID</th>
-              <th>Request</th>
-              <th>Run</th>
-              <th>Step</th>
-              <th>Status</th>
-              <th>Latency</th>
-              <th>Cost</th>
-              <th>Request time</th>
+              <th>{$t("Trace ID")}</th>
+              <th>{$t("Request")}</th>
+              <th>{$t("Run")}</th>
+              <th>{$t("Step")}</th>
+              <th>{$t("Status")}</th>
+              <th>{$t("Latency")}</th>
+              <th>{$t("Cost")}</th>
+              <th>{$t("Request time")}</th>
             </tr>
           </thead>
           <tbody>
@@ -529,10 +530,10 @@
                   <td colspan="8">
                     <div class="trace-detail">
                       <div class="trace-summary">
-                        <span><strong>Latency</strong> {formatDuration(trace.summary.durationMs)}</span>
-                        <span><strong>Cost</strong> {formatCost(trace.summary.costUsd)}</span>
-                        <span><strong>Tokens</strong> {formatTokens(trace.summary.totalTokens)}</span>
-                        <span><strong>Operations</strong> {trace.summary.spanCount}</span>
+                        <span><strong>{$t("Latency")}</strong> {formatDuration(trace.summary.durationMs)}</span>
+                        <span><strong>{$t("Cost")}</strong> {formatCost(trace.summary.costUsd)}</span>
+                        <span><strong>{$t("Tokens")}</strong> {formatTokens(trace.summary.totalTokens)}</span>
+                        <span><strong>{$t("Operations")}</strong> {trace.summary.spanCount}</span>
                         {#if trace.summary.status}
                           <span class:status-error={trace.summary.status === "error"} class="status-pill">
                             {trace.summary.status}
@@ -540,9 +541,9 @@
                         {/if}
                       </div>
                       <div class="detail-meta">
-                        <span>Trace ID: {publicTraceId(trace.id)}</span>
-                        <span>Logged as: {trace.key}</span>
-                        <span>Timestamp: {trace.timestamp || "—"}</span>
+                        <span>{$t("Trace ID:")} {publicTraceId(trace.id)}</span>
+                        <span>{$t("Logged as:")} {trace.key}</span>
+                        <span>{$t("Timestamp:")} {trace.timestamp || "—"}</span>
                         {#each metadataEntries(trace) as [key, value]}
                           <span>{key}: {formatMetadataValue(value)}</span>
                         {/each}
@@ -551,7 +552,7 @@
                       {#if trace.executionSpans.length}
                         <div class="trace-inspector">
                           <aside class="execution-panel">
-                            <div class="panel-title">Execution</div>
+                            <div class="panel-title">{$t("Execution")}</div>
                             <div class="execution-tree">
                               {#each executionRows(trace) as span (span._treeId)}
                                 <div
@@ -563,7 +564,7 @@
                                     class:collapse-hidden={!span.hasChildren}
                                     class="span-collapse"
                                     type="button"
-                                    aria-label={collapsedSpanIds.has(span._treeId) ? "Expand span" : "Collapse span"}
+                                    aria-label={collapsedSpanIds.has(span._treeId) ? $t("Expand span") : $t("Collapse span")}
                                     onclick={(event) => toggleSpan(event, span._treeId)}
                                   >{collapsedSpanIds.has(span._treeId) ? "▸" : "▾"}</button>
                                   <button
@@ -574,7 +575,7 @@
                                     <span class={`span-icon span-icon-${span.kind}`}>{spanIcon(span.kind)}</span>
                                     <span class="span-name">{span.name}</span>
                                     {#if span.status === "error" || span.error}
-                                      <span class="span-error-dot" title="Error"></span>
+                                      <span class="span-error-dot" title={$t("Error")}></span>
                                     {/if}
                                     <span class="span-duration">{formatDuration(spanDurationMs(span))}</span>
                                   </button>
@@ -605,21 +606,21 @@
                                 </div>
                               </header>
                               <div class="operation-meta">
-                                {#if selectedSpan.model}<span><strong>Model</strong> {selectedSpan.model}</span>{/if}
-                                {#if usage.inputTokens !== null}<span><strong>Input</strong> {formatTokens(usage.inputTokens)} tokens</span>{/if}
-                                {#if usage.outputTokens !== null}<span><strong>Output</strong> {formatTokens(usage.outputTokens)} tokens</span>{/if}
-                                {#if selectedSpan.start_time}<span><strong>Started</strong> {selectedSpan.start_time}</span>{/if}
+                                {#if selectedSpan.model}<span><strong>{$t("Model")}</strong> {selectedSpan.model}</span>{/if}
+                                {#if usage.inputTokens !== null}<span><strong>{$t("Input")}</strong> {formatTokens(usage.inputTokens)} {$t("tokens")}</span>{/if}
+                                {#if usage.outputTokens !== null}<span><strong>{$t("Output")}</strong> {formatTokens(usage.outputTokens)} {$t("tokens")}</span>{/if}
+                                {#if selectedSpan.start_time}<span><strong>{$t("Started")}</strong> {selectedSpan.start_time}</span>{/if}
                               </div>
                               <div class="io-grid">
                                 <section>
-                                  <h4>Input</h4>
+                                  <h4>{$t("Input")}</h4>
                                   {#each mediaParts(selectedSpan.input) as part}
                                     <img class="trace-image" src={imageSrc(part)} alt={imageAlt(part)} />
                                   {/each}
                                   <pre>{formatValue(withoutMediaParts(selectedSpan.input))}</pre>
                                 </section>
                                 <section>
-                                  <h4>{selectedSpan.error ? "Error" : "Output"}</h4>
+                                  <h4>{selectedSpan.error ? $t("Error") : $t("Output")}</h4>
                                   {#each mediaParts(payload) as part}
                                     <img class="trace-image" src={imageSrc(part)} alt={imageAlt(part)} />
                                   {/each}
@@ -628,36 +629,36 @@
                               </div>
                               {#if selectedSpan.metadata}
                                 <details class="span-metadata">
-                                  <summary>Metadata</summary>
+                                  <summary>{$t("Metadata")}</summary>
                                   <pre>{formatValue(selectedSpan.metadata)}</pre>
                                 </details>
                               {/if}
                             {:else}
-                              <div class="operation-empty">Select an operation to inspect it.</div>
+                              <div class="operation-empty">{$t("Select an operation to inspect it.")}</div>
                             {/if}
                           </section>
                         </div>
                       {/if}
 
                       <details class="conversation-section" open={!trace.executionSpans.length}>
-                        <summary>Conversation</summary>
+                        <summary>{$t("Conversation")}</summary>
                         <div class="conversation">
                           {#each trace.messages as message}
                             <div class="message" data-role={message.role || "unknown"}>
                               <div class="message-role">
                                 {message.role || "message"}
                                 {#if message.tool_calls?.length}
-                                  <span class="message-tag">tool calls</span>
+                                  <span class="message-tag">{$t("tool calls")}</span>
                                 {/if}
                                 {#if message.function_call}
-                                  <span class="message-tag">function call</span>
+                                  <span class="message-tag">{$t("function call")}</span>
                                 {/if}
                               </div>
 
                               {#if typeof message.content === "string"}
                                 {#if longText(message.content)}
                                   <details class="message-details">
-                                    <summary>Expand content</summary>
+                                    <summary>{$t("Expand content")}</summary>
                                     <pre class="message-content">{message.content}</pre>
                                   </details>
                                 {:else}
@@ -701,17 +702,17 @@
 
       <div class="pagination">
         <button type="button" onclick={gotoPrev} disabled={page === 0 || loading}>
-          ← Previous
+          {$t("← Previous")}
         </button>
         <span class="page-info">
-          Page {page + 1} of {totalPages}
+          {$t("Page")} {page + 1} {$t("of")} {totalPages}
         </span>
         <button
           type="button"
           onclick={gotoNext}
           disabled={page >= totalPages - 1 || loading}
         >
-          Next →
+          {$t("Next →")}
         </button>
       </div>
     {/if}

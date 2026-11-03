@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { isDark, detectSystemTheme } from "../lib/theme.js";
   const dark =
     isDark() ||
@@ -18,7 +19,7 @@
       <img src={logoSrc} alt="" class="logo-img logo-img--gray" />
     </div>
   </div>
-  <span class="sr-only">Loading</span>
+  <span class="sr-only">{$t("Loading")}</span>
 </div>
 
 <style>

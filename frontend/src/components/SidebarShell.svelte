@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import Logo from "./Logo.svelte";
   import ProjectSelector from "./ProjectSelector.svelte";
 
@@ -19,12 +20,12 @@
 <svelte:window onkeydown={(event) => { if (event.key === "Escape" && open) { open = false; onToggle?.(false); } }} />
 
 {#if open}
-  <button class="sidebar-backdrop" aria-label="Close experiment controls" onclick={() => { open = false; onToggle?.(false); }}></button>
+  <button class="sidebar-backdrop" aria-label={$t("Close experiment controls")} onclick={() => { open = false; onToggle?.(false); }}></button>
 {/if}
 <aside class="sidebar-shell" class:collapsed={!open}>
   <button
     class="toggle-btn"
-    title={open ? "Collapse sidebar" : "Expand sidebar"}
+    title={open ? $t("Collapse sidebar") : $t("Expand sidebar")}
     aria-expanded={open}
     onclick={() => {
       open = !open;

@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   let { value = $bindable(""), placeholder = "Search…" } = $props();
 </script>
 
@@ -12,9 +13,9 @@
       stroke-linecap="round"
     />
   </svg>
-  <input type="text" {placeholder} bind:value />
+  <input type="text" placeholder={$t(placeholder)} bind:value />
   {#if value}
-    <button class="clear-search" onclick={() => (value = "")} title="Clear search"
+    <button class="clear-search" onclick={() => (value = "")} title={$t("Clear search")}
       >×</button
     >
   {/if}

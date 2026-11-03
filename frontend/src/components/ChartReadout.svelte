@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { readoutAt, readoutSteps } from "../lib/chartReadout.js";
   let { data, x, y, target = null } = $props();
   let steps = $derived(readoutSteps(data, x));
@@ -13,9 +14,9 @@
 </script>
 
 {#if steps.length}
-  <div class="chart-readout" aria-label="Original observations">
-    <label><strong>{x}: {step}</strong><span>Original values</span>
-      <input type="range" min="0" max={steps.length - 1} step="1" bind:value={index} aria-label={`Read ${y} by ${x}`} />
+  <div class="chart-readout" aria-label={$t("Original observations")}>
+    <label><strong>{x}: {step}</strong><span>{$t("Original values")}</span>
+      <input type="range" min="0" max={steps.length - 1} step="1" bind:value={index} aria-label={$t("Read {y} by {x}", {y, x})} />
     </label>
     <dl>
       {#each readings as reading (reading.key)}

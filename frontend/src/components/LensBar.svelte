@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { connection, frontendCommit, logout } from "../lib/lens.js";
   let logoutError = $state("");
   async function signOut() {
@@ -8,21 +9,21 @@
 
 <header class="lens-bar">
   <a href="/" class="lens-brand">Trackio <strong>Lens</strong></a>
-  <span class="sync-status" role="status" title="Time of the last successful data response">
-    {#if $connection.lastUpdated}Synced {$connection.lastUpdated.toLocaleTimeString()}{:else}Connecting…{/if}
+  <span class="sync-status" role="status" title={$t("Time of the last successful data response")}>
+    {#if $connection.lastUpdated}{$t("Synced")} {$connection.lastUpdated.toLocaleTimeString()}{:else}{$t("Connecting…")}{/if}
   </span>
-  <button class="sign-out" onclick={signOut}>Sign out</button>
-  <a href="/settings" class="account-link" aria-label="Settings" title="Settings">⚙</a>
-  <span class="build" title={`Frontend source ${frontendCommit}`}>{frontendCommit.slice(0, 7)}</span>
+  <button class="sign-out" onclick={signOut}>{$t("Sign out")}</button>
+  <a href="/settings" class="account-link" aria-label={$t("Settings")} title={$t("Settings")}>⚙</a>
+  <span class="build" title={$t("Frontend source {commit}", {commit: frontendCommit})}>{frontendCommit.slice(0, 7)}</span>
 </header>
 {#if $connection.needsSetup}
-  <div class="notice" role="status">Choose your own account name and password in <a href="/settings">Settings</a>.</div>
+  <div class="notice" role="status">{$t("Choose your own account name and password in")} <a href="/settings">{$t("Settings")}</a>.</div>
 {/if}
 {#if $connection.updateAvailable}
-  <div class="notice" role="status">An update is ready. <button onclick={() => location.reload()}>Refresh</button></div>
+  <div class="notice" role="status">{$t("An update is ready.")} <button onclick={() => location.reload()}>{$t("Refresh")}</button></div>
 {/if}
 {#if $connection.errors.length || logoutError}
-  <div class="notice error" role="alert">{logoutError || $connection.errors[0]} <button onclick={() => location.reload()}>Retry</button></div>
+  <div class="notice error" role="alert">{$t(logoutError || $connection.errors[0])} <button onclick={() => location.reload()}>{$t("Retry")}</button></div>
 {/if}
 
 <style>

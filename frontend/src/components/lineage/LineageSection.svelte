@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../../lib/i18n.js";
   import { getArtifactLineage } from "../../lib/api.js";
   import { clusterLineage } from "../../lib/lineage.js";
   import { layoutLineage, SMOOTH_EDGE_LIMIT } from "../../lib/lineageLayout.js";
@@ -91,21 +92,21 @@
 </script>
 
 {#if loading}
-  <div class="status">Loading lineage…</div>
+  <div class="status">{$t("Loading lineage…")}</div>
 {:else if error}
-  <div class="status">Failed to load lineage.</div>
+  <div class="status">{$t("Failed to load lineage.")}</div>
 {:else if !graph || graph.edges.length === 0}
-  <div class="status">No lineage recorded for this version.</div>
+  <div class="status">{$t("No lineage recorded for this version.")}</div>
 {:else}
   <div class="lineage">
     {#if graph.truncated}
       <div class="toolbar">
-        <span class="notice">Large graph — lineage was truncated.</span>
+        <span class="notice">{$t("Large graph — lineage was truncated.")}</span>
       </div>
     {:else if clustered.nodes.length > SMOOTH_EDGE_LIMIT}
       <div class="toolbar">
         <span class="notice">
-          Large graph — showing {clustered.nodes.length} nodes.
+          {$t("Large graph — showing")} {clustered.nodes.length} {$t("nodes.")}
         </span>
       </div>
     {/if}
@@ -124,15 +125,15 @@
                 class="target-dot"
                 r="2"
               /></svg
-            >Base Artifact</span
+            >{$t("Base Artifact")}</span
           >
           <span class="legend-item"
-            ><span class="swatch artifact"></span>Artifact</span
+            ><span class="swatch artifact"></span>{$t("Artifact")}</span
           >
-          <span class="legend-item"><span class="swatch run"></span>Run</span>
+          <span class="legend-item"><span class="swatch run"></span>{$t("Run")}</span>
         </div>
         <span class="hint"
-          >Drag to pan · Ctrl/Cmd + scroll to zoom · Click a node for details</span
+          >{$t("Drag to pan · Ctrl/Cmd + scroll to zoom · Click a node for details")}</span
         >
         {#if selectedNode}
           <div class="preview-overlay">

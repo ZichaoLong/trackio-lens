@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { compileConfigFilter, filterRunsByConfig } from "../lib/runFilters.js";
   import { tick, untrack } from "svelte";
   import LoadingTrackio from "../components/LoadingTrackio.svelte";
@@ -210,24 +211,24 @@
     <LoadingTrackio />
   {:else if runsData.length === 0}
     <div class="empty-state">
-      <h2>No runs in this project</h2>
-      <p>Runs are created when you call <code>trackio.init()</code> and log at least one step. Example:</p>
+      <h2>{$t("No runs in this project")}</h2>
+      <p>{$t("Runs are created when you call")} <code>trackio.init()</code> {$t("and log at least one step. Example:")}</p>
       <pre><code>{'import trackio\ntrackio.init(project="my-project")\nfor i in range(10):\n    trackio.log({"loss": 1 / (i + 1)})\ntrackio.finish()'}</code></pre>
-      <p>Refresh this page or wait for the dashboard to poll; new runs appear in the table with step counts.</p>
+      <p>{$t("Refresh this page or wait for the dashboard to poll; new runs appear in the table with step counts.")}</p>
     </div>
   {:else}
     {#if filterText || configFilters.flat().some((rule) => rule.key)}
       <div class="filter-count-row">
-        <span class="filter-count">{filteredRuns.length} of {runsData.length} runs</span>
+        <span class="filter-count">{filteredRuns.length} {$t("of")} {runsData.length} {$t("runs")}</span>
       </div>
     {/if}
     <div class="bulk-actions">
-      <span>{selectedVisibleRuns.length} selected</span>
+      <span>{selectedVisibleRuns.length} {$t("selected")}</span>
       <button
         class="bulk-delete"
         disabled={!canMutateRuns || selectedVisibleRuns.length === 0}
         onclick={() => handleDelete([...selectedVisibleRuns])}
-      >{deleting ? "Deleting…" : `Delete selected (${selectedVisibleRuns.length})`}</button>
+      >{deleting ? "Deleting…" : $t("Delete selected ({count})", {count: selectedVisibleRuns.length})}</button>
     </div>
     <table class="runs-table">
       <thead>
@@ -235,7 +236,7 @@
           <th class="selection-cell">
             <input
               type="checkbox"
-              aria-label="Select all visible runs"
+              aria-label={$t("Select all visible runs")}
               checked={allVisibleSelected}
               indeterminate={selectedVisibleRuns.length > 0 && !allVisibleSelected}
               disabled={!canMutateRuns || filteredRuns.length === 0}
@@ -244,12 +245,12 @@
               }}
             />
           </th>
-          <th>Actions</th>
-          <th>Run Name</th>
-          <th>Steps</th>
-          <th>Last Step</th>
+          <th>{$t("Actions")}</th>
+          <th>{$t("Run Name")}</th>
+          <th>{$t("Steps")}</th>
+          <th>{$t("Last Step")}</th>
           {#if hasArtifacts}
-            <th>Artifacts</th>
+            <th>{$t("Artifacts")}</th>
           {/if}
         </tr>
       </thead>
@@ -259,7 +260,7 @@
             <td class="selection-cell">
               <input
                 type="checkbox"
-                aria-label={`Select run ${run.name}`}
+                aria-label={$t("Select run {name}", {name: run.name})}
                 checked={selectedVisibleRuns.includes(run)}
                 disabled={!canMutateRuns}
                 onchange={() => toggleSelection(run)}
@@ -269,7 +270,7 @@
               <div class="actions-wrap">
               <button
                 class="action-btn"
-                title={canMutateRuns ? "Rename" : "Sign in with Hugging Face (write access) to rename runs"}
+                title={canMutateRuns ? $t("Rename") : $t("Sign in with Hugging Face (write access) to rename runs")}
                 disabled={!canMutateRuns}
                 onclick={() => startRename(i, run.name)}
               >
@@ -279,7 +280,7 @@
               </button>
               <button
                 class="action-btn delete-btn"
-                title={canMutateRuns ? "Delete" : "Sign in with Hugging Face (write access) to delete runs"}
+                title={canMutateRuns ? $t("Delete") : $t("Sign in with Hugging Face (write access) to delete runs")}
                 disabled={!canMutateRuns}
                 onclick={() => handleDelete([run])}
               >
@@ -325,17 +326,17 @@
                     {#if run.outputs > 0}
                       <span
                         class="art-count"
-                        title="{run.outputs} output artifact{run.outputs === 1
+                        title="{run.outputs} {$t("output artifact")}{run.outputs === 1
                           ? ''
-                          : 's'} (produced)">↑ {run.outputs}</span
+                          : 's'} {$t("(produced)")}">↑ {run.outputs}</span
                       >
                     {/if}
                     {#if run.inputs > 0}
                       <span
                         class="art-count"
-                        title="{run.inputs} input artifact{run.inputs === 1
+                        title="{run.inputs} {$t("input artifact")}{run.inputs === 1
                           ? ''
-                          : 's'} (consumed)">↓ {run.inputs}</span
+                          : 's'} {$t("(consumed)")}">↓ {run.inputs}</span
                       >
                     {/if}
                   </div>

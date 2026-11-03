@@ -1,4 +1,5 @@
 <script>
+  import { t, locale, setLocale } from "../lib/i18n.js";
   import AccountSettings from "../components/AccountSettings.svelte";
   import { copyTextToClipboard } from "../lib/clipboard.js";
   import {
@@ -95,14 +96,20 @@
 </script>
 
 <div class="settings-page">
-  <h2 class="page-title">Settings</h2>
+  <h2 class="page-title">{$t("Settings")}</h2>
+  <section class="settings-section">
+    <label for="lens-language">{$t("Language")}</label>
+    <select id="lens-language" value={$locale} onchange={event => setLocale(event.target.value)}>
+      <option value="zh-CN">简体中文</option><option value="en">English</option>
+    </select>
+  </section>
   <AccountSettings />
 
   <div class="two-col">
     <div class="col col-left">
       <section class="settings-section">
-        <h3 class="section-title">Appearance</h3>
-        <p class="section-desc">Choose how the dashboard looks to you.</p>
+        <h3 class="section-title">{$t("Appearance")}</h3>
+        <p class="section-desc">{$t("Choose how the dashboard looks to you.")}</p>
         <div class="theme-switcher">
           {#each [
             { value: "system", label: "System" },
@@ -137,23 +144,23 @@
                   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
                 </svg>
               {/if}
-              {opt.label}
+              {$t(opt.label)}
             </button>
           {/each}
         </div>
       </section>
 
       <section class="settings-section">
-        <h3 class="section-title">CLI Reference</h3>
+        <h3 class="section-title">{$t("CLI Reference")}</h3>
         <p class="section-desc">
-          Common Trackio CLI commands.
+          {$t("Common Trackio CLI commands.")}
           {#if spaceId}
-            Connected to <strong>{spaceId}</strong> — remote commands include <code>--space</code> automatically.
+            {$t("Connected to")} <strong>{spaceId}</strong> {$t("— remote commands include")} <code>--space</code> {$t("automatically.")}
           {/if}
         </p>
         {#if projects.length > 0}
           <div class="project-selector">
-            <label class="selector-label" for="cli-project">Project</label>
+            <label class="selector-label" for="cli-project">{$t("Project")}</label>
             <select
               id="cli-project"
               class="selector-select"
@@ -168,14 +175,14 @@
         <div class="commands-table">
           {#each commands as cmd, i}
             <div class="command-row">
-              <span class="command-label">{cmd.title}</span>
+              <span class="command-label">{$t(cmd.title)}</span>
               <div class="command-value">
                 <code>{cmd.cmd}</code>
                 <button
                   class="copy-btn"
                   class:copied={copiedIdx === i}
                   onclick={() => copyCommand(cmd.cmd, i)}
-                  title="Copy"
+                  title={$t("Copy")}
                 >
                   {#if copiedIdx === i}
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -197,8 +204,8 @@
 
     <div class="col col-right">
       <section class="settings-section">
-        <h3 class="section-title">Agent Skills</h3>
-        <p class="section-desc">Install Trackio as a skill in your AI coding agent to query experiments with natural language.</p>
+        <h3 class="section-title">{$t("Agent Skills")}</h3>
+        <p class="section-desc">{$t("Install Trackio as a skill in your AI coding agent to query experiments with natural language.")}</p>
 
         <div class="agent-tabs">
           {#each agents as agent}
@@ -214,14 +221,14 @@
 
         <div class="agent-panel">
           <div class="install-block">
-            <span class="install-label">Run in Terminal to Install:</span>
+            <span class="install-label">{$t("Run in Terminal to Install:")}</span>
             <div class="install-cmd">
               <code>{agentInstallCmd}</code>
               <button
                 class="copy-btn"
                 class:copied={agentCopied}
                 onclick={() => copyText(agentInstallCmd, "agent")}
-                title="Copy"
+                title={$t("Copy")}
               >
                 {#if agentCopied}
                   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -239,12 +246,12 @@
 
           <div class="example-block">
             <div class="example-header">
-              <span class="example-label">Example prompt</span>
+              <span class="example-label">{$t("Example prompt")}</span>
               <button
                 class="copy-btn"
                 class:copied={exampleCopied}
                 onclick={() => copyText(agentExample, "example")}
-                title="Copy"
+                title={$t("Copy")}
               >
                 {#if exampleCopied}
                   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

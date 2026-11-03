@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { tick } from "svelte";
   import LoadingTrackio from "../components/LoadingTrackio.svelte";
   import ArtifactVersionDetail from "../components/ArtifactVersionDetail.svelte";
@@ -168,8 +169,8 @@
       <button
         class="open-btn"
         onclick={() => openInArtifacts(art.name, art.version)}
-        title="Open in Artifacts"
-        aria-label="Open {art.name} v{art.version} in the Artifacts tab"
+        title={$t("Open in Artifacts")}
+        aria-label="{$t("Open")} {art.name} v{art.version} {$t("in the Artifacts tab")}"
       >
         <svg
           width="14"
@@ -196,38 +197,37 @@
 <div class="run-detail-page">
   <button class="back-link" onclick={() => navigateTo("runs")}>
     <span aria-hidden="true">←</span>
-    All runs
+    {$t("All runs")}
   </button>
   {#if loading}
     <LoadingTrackio />
   {:else if !summary}
     <div class="empty-state">
-      <h2>Open a run</h2>
+      <h2>{$t("Open a run")}</h2>
       <p>
-        Choose a run from the <strong>Runs</strong> page or follow a run name from the sidebar. This view shows the
-        project name, log count, last step, metric keys, and any logged config.
+        {$t("Choose a run from the")} <strong>{$t("Runs")}</strong> {$t("page or follow a run name from the sidebar. This view shows the project name, log count, last step, metric keys, and any logged config.")}
       </p>
       <pre><code>{'import trackio\ntrackio.init(project="my-project", config={"lr": 1e-3})\ntrackio.log({"loss": 0.5})\ntrackio.finish()'}</code></pre>
-      <p>Config passed to <code>trackio.init()</code> appears under Configuration when present.</p>
+      <p>{$t("Config passed to")} <code>trackio.init()</code> {$t("appears under Configuration when present.")}</p>
     </div>
   {:else}
     <div class="detail-card">
       <h2>{summary.run}</h2>
       <div class="detail-grid">
         <div class="detail-item">
-          <span class="detail-label">Project</span>
+          <span class="detail-label">{$t("Project")}</span>
           <span class="detail-value">{summary.project}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Total Logs</span>
+          <span class="detail-label">{$t("Total Logs")}</span>
           <span class="detail-value">{summary.num_logs}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Last Step</span>
+          <span class="detail-label">{$t("Last Step")}</span>
           <span class="detail-value">{summary.last_step ?? "N/A"}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Metrics</span>
+          <span class="detail-label">{$t("Metrics")}</span>
           <span class="detail-value"
             >{summary.metrics && summary.metrics.length
               ? summary.metrics.join(", ")
@@ -237,7 +237,7 @@
       </div>
 
       {#if command}
-        <h3>Command</h3>
+        <h3>{$t("Command")}</h3>
         <div class="command-block">
           <code
             >{#each command.split(" ") as part, i}{#if i > 0}{" "}{/if}<span class="command-arg"
@@ -248,8 +248,8 @@
             class="icon-btn"
             class:copied={commandCopied}
             onclick={copyCommand}
-            title="Copy command"
-            aria-label="Copy command"
+            title={$t("Copy command")}
+            aria-label={$t("Copy command")}
           >
             {#if commandCopied}
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -267,30 +267,28 @@
 
       {#if consoleOutput}
         <div class="section-header">
-          <h3>Console output</h3>
+          <h3>{$t("Console output")}</h3>
           {#if consoleEnabled && consoleLines.length > 0}
-            <button class="text-btn" onclick={downloadConsole}>Download</button>
+            <button class="text-btn" onclick={downloadConsole}>{$t("Download")}</button>
           {/if}
         </div>
         {#if !consoleEnabled}
           <div class="console-placeholder">
             <p>
-              Console output was not captured for this run. To save everything the script writes to
-              stdout and stderr, pass <code>capture_console=True</code> to <code>trackio.init()</code>:
+              {$t("Console output was not captured for this run. To save everything the script writes to stdout and stderr, pass")} <code>capture_console=True</code> {$t("to")} <code>trackio.init()</code>:
             </p>
             <pre><code>{`trackio.init(project="${summary.project}", capture_console=True)`}</code></pre>
             <p>
-              or set <code>TRACKIO_CAPTURE_CONSOLE=1</code> in the environment before launching the
-              script.
+              {$t("or set")} <code>TRACKIO_CAPTURE_CONSOLE=1</code> {$t("in the environment before launching the script.")}
             </p>
           </div>
         {:else if consoleLines.length === 0}
           <div class="console-placeholder">
-            <p>No console output has been captured yet.</p>
+            <p>{$t("No console output has been captured yet.")}</p>
           </div>
         {:else}
           {#if consoleOutput.truncated}
-            <p class="console-note">Showing the most recent output. Download to see all of it.</p>
+            <p class="console-note">{$t("Showing the most recent output. Download to see all of it.")}</p>
           {/if}
           <div class="console-block" bind:this={consoleEl}>
             {#each consoleLines as line}
@@ -304,12 +302,12 @@
       {/if}
 
       {#if displayConfig}
-        <h3>Configuration</h3>
+        <h3>{$t("Configuration")}</h3>
         <pre class="config-block">{JSON.stringify(displayConfig, null, 2)}</pre>
       {/if}
 
       {#if runArtifacts.output.length > 0}
-        <h3>Output artifacts</h3>
+        <h3>{$t("Output artifacts")}</h3>
         <div class="artifact-links">
           {#each runArtifacts.output as art}
             {@render artifactEntry(art, "out")}
@@ -318,7 +316,7 @@
       {/if}
 
       {#if runArtifacts.input.length > 0}
-        <h3>Input artifacts</h3>
+        <h3>{$t("Input artifacts")}</h3>
         <div class="artifact-links">
           {#each runArtifacts.input as art}
             {@render artifactEntry(art, "in")}

@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import Accordion from "./Accordion.svelte";
   import AliasPill from "./AliasPill.svelte";
   import IndentGuides from "./IndentGuides.svelte";
@@ -163,7 +164,7 @@
         class="file-entry"
         href={getArtifactBlobUrl(project, file.digest)}
         download={file.path}
-        title="Download {file.path}"
+        title="{$t("Download")} {file.path}"
       >
         <span class="file-path">{file.path}</span>
         <span class="spacer"></span>
@@ -227,7 +228,7 @@
 
 {#snippet lineageRows()}
   {#if record.producer_run_name}
-    <span class="detail-key">Produced by</span>
+    <span class="detail-key">{$t("Produced by")}</span>
     <span class="detail-val">
       <button
         class="run-link"
@@ -238,7 +239,7 @@
     </span>
   {/if}
   {#if consumers.length}
-    <span class="detail-key">Used by</span>
+    <span class="detail-key">{$t("Used by")}</span>
     <span class="detail-val">
       {#each consumers as c, ci}<button
           class="run-link"
@@ -254,9 +255,9 @@
   class:fill={activeTab === "lineage"}
 >
   {#if loading}
-    <div class="status">Loading…</div>
+    <div class="status">{$t("Loading…")}</div>
   {:else if error || !record}
-    <div class="status">Failed to load this version.</div>
+    <div class="status">{$t("Failed to load this version.")}</div>
   {:else if variant === "panel"}
     <header class="panel-header">
       <div class="header-row">
@@ -288,9 +289,9 @@
           <button
             class="copy-btn"
             onclick={() => copy(usageSnippet, "use")}
-            title="Copy usage snippet"
+            title={$t("Copy usage snippet")}
           >
-            {copied === "use" ? "Copied" : "Copy"}
+            {copied === "use" ? "Copied" : $t("Copy")}
           </button>
         </div>
       </div>
@@ -302,7 +303,7 @@
         class="tab-btn"
         class:active={activeTab === "details"}
         aria-selected={activeTab === "details"}
-        onclick={() => selectTab("details")}>Details</button
+        onclick={() => selectTab("details")}>{$t("Details")}</button
       >
       {#if record.version_id != null}
         <button
@@ -310,7 +311,7 @@
           class="tab-btn"
           class:active={activeTab === "lineage"}
           aria-selected={activeTab === "lineage"}
-          onclick={() => selectTab("lineage")}>Lineage</button
+          onclick={() => selectTab("lineage")}>{$t("Lineage")}</button
         >
       {/if}
     </div>
@@ -325,16 +326,16 @@
       </div>
     {/if}
     {#if activeTab !== "lineage" || record.version_id == null}
-      <Accordion label="Overview">
+      <Accordion label={$t("Overview")}>
       <div class="detail-grid">
         {#if record.description}
-          <span class="detail-key">Description</span>
+          <span class="detail-key">{$t("Description")}</span>
           <span class="detail-val">{record.description}</span>
         {/if}
         {@render lineageRows()}
-        <span class="detail-key">Created</span>
+        <span class="detail-key">{$t("Created")}</span>
         <span class="detail-val">{formatDate(record.created_at)}</span>
-        <span class="detail-key">Digest</span>
+        <span class="detail-key">{$t("Digest")}</span>
         <span class="detail-val digest-val">
           <span class="mono digest-text" title={record.manifest_digest}
             >{record.manifest_digest?.slice(0, 16)}…</span
@@ -342,30 +343,30 @@
           <button
             class="copy-btn small"
             onclick={() => copy(record.manifest_digest, "digest")}
-            title="Copy digest"
+            title={$t("Copy digest")}
           >
-            {copied === "digest" ? "Copied" : "Copy"}
+            {copied === "digest" ? "Copied" : $t("Copy")}
           </button>
         </span>
       </div>
     </Accordion>
 
       {#if record.metadata && Object.keys(record.metadata).length}
-        <Accordion label="Metadata ({Object.keys(record.metadata).length})">
+        <Accordion label="{$t("Metadata (")}{Object.keys(record.metadata).length})">
           <div class="meta-grid">
             {@render metaRows(Object.entries(record.metadata), 0, [])}
           </div>
         </Accordion>
       {/if}
 
-      <Accordion label="Files ({(record.manifest || []).length})">
+      <Accordion label="{$t("Files (")}{(record.manifest || []).length})">
         {@render fileTable()}
       </Accordion>
     {/if}
   {:else}
     <div class="detail-grid">
       {@render lineageRows()}
-      <span class="detail-key">Digest</span>
+      <span class="detail-key">{$t("Digest")}</span>
       <span class="detail-val mono"
         >{record.manifest_digest?.slice(0, 16)}…</span
       >

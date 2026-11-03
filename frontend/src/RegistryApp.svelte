@@ -1,4 +1,5 @@
 <script>
+  import { t } from "./lib/i18n.js";
   import { onMount } from "svelte";
   import LensBar from "./components/LensBar.svelte";
   import { DEFAULT_LOGO_URLS } from "./components/Logo.svelte";
@@ -30,7 +31,7 @@
   <LensBar />
   <header class="app-header">
     <img src={darkMode ? logoUrls.dark : logoUrls.light} alt="Trackio" />
-    <span>Registry</span>
+    <span>{$t("Registry")}</span>
   </header>
   <Registries />
 </div>

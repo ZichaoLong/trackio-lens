@@ -13,6 +13,7 @@ Props:
 - `colorMap` — run key → color, shared with the charts and sidebar
 -->
 <script>
+  import { t } from "../lib/i18n.js";
   import { onDestroy } from "svelte";
   import GradioCheckbox from "./GradioCheckbox.svelte";
   import GradioTextbox from "./GradioTextbox.svelte";
@@ -93,35 +94,35 @@ Props:
 </script>
 
 <div class="run-comparer">
-  <div class="comparer-title">Run comparer</div>
+  <div class="comparer-title">{$t("Run comparer")}</div>
   {#if runs.length === 0}
-    <p class="comparer-empty">Select runs to compare.</p>
+    <p class="comparer-empty">{$t("Select runs to compare.")}</p>
   {:else if allRows.length === 0}
-    <p class="comparer-empty">No config values to compare.</p>
+    <p class="comparer-empty">{$t("No config values to compare.")}</p>
   {:else}
     <div class="comparer-controls">
       <div class="comparer-search">
         <GradioTextbox
           showLabel={false}
-          placeholder="Search keys"
+          placeholder={$t("Search keys")}
           bind:value={searchText}
         />
       </div>
-      <GradioCheckbox label="Diff only" bind:checked={diffOnly} />
+      <GradioCheckbox label={$t("Diff only")} bind:checked={diffOnly} />
       {#if runs.length > COMPARER_MAX_COLUMNS}
         <span class="comparer-note">
-          Showing first {COMPARER_MAX_COLUMNS} of {runs.length} selected runs
+          {$t("Showing first")} {COMPARER_MAX_COLUMNS} {$t("of")} {runs.length} {$t("selected runs")}
         </span>
       {/if}
     </div>
     {#if rows.length === 0}
-      <p class="comparer-empty">No matching keys.</p>
+      <p class="comparer-empty">{$t("No matching keys.")}</p>
     {:else}
       <div class="comparer-scroll">
         <table class="comparer-table">
           <thead>
             <tr>
-              <th class="key-col">Key</th>
+              <th class="key-col">{$t("Key")}</th>
               {#each displayRuns as run (runKeyOf(run))}
                 <th class="run-col">
                   <div class="run-header">
@@ -138,7 +139,7 @@ Props:
           <tbody>
             {#each sections as group (group.section)}
               <tr class="section-row">
-                <td class="key-col">{group.label}</td>
+                <td class="key-col">{$t(group.label)}</td>
                 <td colspan={displayRuns.length}></td>
               </tr>
               {#each group.rows as row (`${row.section}\0${row.key}`)}
@@ -152,7 +153,7 @@ Props:
                       {:else}
                         {#if cell.text.length > DISPLAY_LIMIT}
                           <details class="full-value">
-                            <summary title="Expand full value">{truncate(cell.text, DISPLAY_LIMIT)}</summary>
+                            <summary title={$t("Expand full value")}>{truncate(cell.text, DISPLAY_LIMIT)}</summary>
                             <pre>{cell.text}</pre>
                           </details>
                         {:else}
@@ -161,8 +162,8 @@ Props:
                         {#if cell.text !== ""}
                           <button
                             class="copy-btn"
-                            title="Copy value"
-                            aria-label="Copy value"
+                            title={$t("Copy value")}
+                            aria-label={$t("Copy value")}
                             onclick={() => copyCell(row, colIndex, cell.text)}
                           >
                             {#if copiedCell === cellId(row, colIndex)}

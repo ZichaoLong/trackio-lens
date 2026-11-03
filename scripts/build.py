@@ -26,6 +26,9 @@ def build(root: Path, allow_dirty=False):
         env={**os.environ, "VITE_LENS_COMMIT": commit},
     )
     dist = root / "frontend/dist"
+    (dist / "lens-locales.json").write_text(
+        (root / "frontend/src/lib/zh.json").read_text()
+    )
     assets = {
         str(p.relative_to(dist)): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in sorted(dist.rglob("*"))

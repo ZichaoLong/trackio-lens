@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import ArtifactVersionDetail from "../components/ArtifactVersionDetail.svelte";
 
   let {
@@ -22,24 +23,22 @@
     {/key}
   {:else if empty}
     <div class="empty-state">
-      <h2>No artifacts in this project</h2>
+      <h2>{$t("No artifacts in this project")}</h2>
       <p>
-        Artifacts are versioned, content-addressed files (models, datasets, …)
-        logged from a run. After <code>trackio.init()</code>, log one with
+        {$t("Artifacts are versioned, content-addressed files (models, datasets, …) logged from a run. After")} <code>trackio.init()</code>{$t(", log one with")}
         <code>trackio.log_artifact()</code>:
       </p>
       <pre><code
           >{'import trackio\n\ntrackio.init(project="my-project")\ntrackio.log_artifact("model.pt", name="my-model", type="model")'}</code
         ></pre>
       <p>
-        You can also build a multi-file artifact with
-        <code>add_file()</code>/<code>add_dir()</code>. Logged artifacts list
-        here, grouped by type, with their versions and files.
+        {$t("You can also build a multi-file artifact with")}
+        <code>add_file()</code>/<code>add_dir()</code>{$t(". Logged artifacts list here, grouped by type, with their versions and files.")}
       </p>
     </div>
   {:else}
     <div class="detail-empty">
-      Select an artifact version to view its details.
+      {$t("Select an artifact version to view its details.")}
     </div>
   {/if}
 </div>

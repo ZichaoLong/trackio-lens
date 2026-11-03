@@ -1,4 +1,5 @@
-import { writable } from "svelte/store";
+import { get, writable } from "svelte/store";
+import { t } from "./i18n.js";
 
 export const connection = writable({ username: "", needsSetup: false, lastUpdated: null, errors: [], updateAvailable: false });
 export const frontendCommit = import.meta.env.VITE_LENS_COMMIT || "development";
@@ -22,7 +23,7 @@ export async function initializeLens() {
   originalFetch = window.fetch.bind(window);
   const response = await originalFetch("/__lens/session", { cache: "no-store" });
   if (response.status === 401) { signIn(); return false; }
-  if (!response.ok) throw Error("Unable to check your session. Please refresh to retry.");
+  if (!response.ok) throw Error(get(t)("Unable to check your session. Please refresh to retry."));
   const session = await response.json();
   acceptSession(session);
   window.fetch = async (input, init = {}) => {
@@ -36,7 +37,7 @@ export async function initializeLens() {
       const result = await originalFetch(input, { ...init, headers });
       if (result.status === 401) signIn();
       if (tracksData) {
-        if (!result.ok) failures.set(url.pathname, `Data request failed (${result.status}).`);
+        if (!result.ok) failures.set(url.pathname, get(t)("Data request failed ({status}).", {status: result.status}));
         else failures.delete(url.pathname);
         connection.update(value => ({ ...value, errors: [...failures.values()], lastUpdated: result.ok ? new Date() : value.lastUpdated }));
       }

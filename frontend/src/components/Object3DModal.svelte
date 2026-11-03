@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { getMediaUrl } from "../lib/api.js";
 
   let { item, onclose = () => {} } = $props();
@@ -92,32 +93,32 @@
         <p>{item.format?.toUpperCase()} · {item.kind?.replaceAll("_", " ")}</p>
       </div>
       <div class="controls">
-        <button type="button" onclick={() => viewer?.resetCamera()} disabled={!viewer}>Reset camera</button>
-        <button type="button" class:active={gridVisible} onclick={toggleGrid}>Grid</button>
-        <button type="button" class:active={axesVisible} onclick={toggleAxes}>Axes</button>
-        <button type="button" onclick={toggleFullscreen}>Fullscreen</button>
-        <button class="close" type="button" onclick={onclose} aria-label="Close 3D viewer">×</button>
+        <button type="button" onclick={() => viewer?.resetCamera()} disabled={!viewer}>{$t("Reset camera")}</button>
+        <button type="button" class:active={gridVisible} onclick={toggleGrid}>{$t("Grid")}</button>
+        <button type="button" class:active={axesVisible} onclick={toggleAxes}>{$t("Axes")}</button>
+        <button type="button" onclick={toggleFullscreen}>{$t("Fullscreen")}</button>
+        <button class="close" type="button" onclick={onclose} aria-label={$t("Close 3D viewer")}>×</button>
       </div>
     </header>
     <div class="viewport">
-      <canvas bind:this={canvas} aria-label="Interactive 3D scene"></canvas>
+      <canvas bind:this={canvas} aria-label={$t("Interactive 3D scene")}></canvas>
       {#if status.state === "loading"}
-        <div class="status">Loading {item.format?.toUpperCase()}…</div>
+        <div class="status">{$t("Loading")} {item.format?.toUpperCase()}…</div>
       {:else if status.state === "error"}
         <div class="status error" role="alert">
-          <strong>3D viewer failed</strong>
+          <strong>{$t("3D viewer failed")}</strong>
           <span>{status.message}</span>
-          <button type="button" onclick={() => (retry += 1)}>Retry</button>
+          <button type="button" onclick={() => (retry += 1)}>{$t("Retry")}</button>
         </div>
       {/if}
-      <div class="hint">Orbit: drag · Pan: right-drag · Zoom: wheel</div>
+      <div class="hint">{$t("Orbit: drag · Pan: right-drag · Zoom: wheel")}</div>
     </div>
     <footer>
       <span>{item._run ? `Run: ${item._run} · Step: ${item.step}` : item.key || ""}</span>
       {#if Number.isFinite(status.renderedPointCount)}
-        <span>{status.renderedPointCount.toLocaleString()} of {status.originalPointCount.toLocaleString()} points rendered</span>
+        <span>{status.renderedPointCount.toLocaleString()} {$t("of")} {status.originalPointCount.toLocaleString()} {$t("points rendered")}</span>
       {:else if Number.isFinite(item.rendered_point_count)}
-        <span>{item.rendered_point_count.toLocaleString()} of {item.original_point_count.toLocaleString()} points</span>
+        <span>{item.rendered_point_count.toLocaleString()} {$t("of")} {item.original_point_count.toLocaleString()} {$t("points")}</span>
       {/if}
     </footer>
   </div>

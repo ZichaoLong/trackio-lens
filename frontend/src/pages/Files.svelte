@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import LoadingTrackio from "../components/LoadingTrackio.svelte";
   import { getFileUrl, getProjectFiles } from "../lib/api.js";
   import { formatSize } from "../lib/format.js";
@@ -73,17 +74,17 @@
     <LoadingTrackio />
   {:else if files.length === 0}
     <div class="empty-state">
-      <h2>No project files yet</h2>
+      <h2>{$t("No project files yet")}</h2>
       <p>
-        Files are stored at the <strong>project</strong> level (not tied to a single run). After
-        <code>trackio.init()</code>, copy artifacts into the project with <code>trackio.save()</code>:
+        {$t("Files are stored at the")} <strong>{$t("project")}</strong> {$t("level (not tied to a single run). After")}
+        <code>trackio.init()</code>{$t(", copy artifacts into the project with")} <code>trackio.save()</code>:
       </p>
       <pre><code>{'import trackio\n\ntrackio.init(project="my-project")\ntrackio.save("config.yaml")\ntrackio.save("checkpoints/*.pt")'}</code></pre>
-      <p>Paths can be a single file or a glob. Saved files will list here for download.</p>
+      <p>{$t("Paths can be a single file or a glob. Saved files will list here for download.")}</p>
     </div>
   {:else}
-    <h2 class="page-title">Files</h2>
-    <p class="page-subtitle">Showing files saved across all runs in this project.</p>
+    <h2 class="page-title">{$t("Files")}</h2>
+    <p class="page-subtitle">{$t("Showing files saved across all runs in this project.")}</p>
     <div class="file-list">
       {#each files as file}
         <div class="file-item" class:expanded={expandedFile === file.name}>
@@ -96,7 +97,7 @@
               {#if file.size != null}
                 <span class="file-size">{formatSize(file.size)}</span>
               {/if}
-              <a class="download-btn" href={getFileUrl(file.path)} download title="Download">
+              <a class="download-btn" href={getFileUrl(file.path)} download title={$t("Download")}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M8 1v9m0 0L5 7m3 3l3-3M2 12v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -106,12 +107,12 @@
           {#if expandedFile === file.name}
             <div class="file-preview">
               {#if previewLoading}
-                <div class="preview-loading">Loading preview...</div>
+                <div class="preview-loading">{$t("Loading preview...")}</div>
               {:else if previewContent != null}
                 <pre class="preview-code">{previewContent}</pre>
               {:else}
                 <div class="preview-unavailable">
-                  Preview not available. <a href={getFileUrl(file.path)} download>Download the file</a> instead.
+                  {$t("Preview not available.")} <a href={getFileUrl(file.path)} download>{$t("Download the file")}</a> {$t("instead.")}
                 </div>
               {/if}
             </div>

@@ -111,7 +111,21 @@ class LensApp:
             return JSONResponse({"status": "ok"})
         if path == "/__lens/login":
             if request.method == "GET":
-                return HTMLResponse((Path(__file__).parent / "login.html").read_text())
+                translations = self.config.frontend_dir / "lens-locales.json"
+                dictionary = (
+                    json.loads(translations.read_text())
+                    if translations.exists()
+                    else {}
+                )
+                page = (Path(__file__).parent / "login.html").read_text()
+                return HTMLResponse(
+                    page.replace(
+                        "__LENS_TRANSLATIONS__",
+                        json.dumps(dictionary, ensure_ascii=False).replace(
+                            "<", "\\u003c"
+                        ),
+                    )
+                )
             if request.method != "POST":
                 return JSONResponse({"error": "Method not allowed"}, 405)
             if (

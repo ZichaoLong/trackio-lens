@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../../lib/i18n.js";
   import { edgePath, NODE_H, NODE_W } from "../../lib/lineageLayout.js";
   import { edgeKey, lineageNodeLabel } from "../../lib/lineage.js";
 
@@ -195,7 +196,7 @@
     onpointerup={onPointerUp}
     onpointercancel={onPointerUp}
     role="application"
-    aria-label="Artifact lineage graph"
+    aria-label={$t("Artifact lineage graph")}
   >
     <defs>
       <marker
@@ -268,7 +269,7 @@
               <g class="base-target" transform="translate({NODE_W}, 0)">
                 <circle class="target-ring" r="5.5" />
                 <circle class="target-dot" r="2.25" />
-                <title>base artifact</title>
+                <title>{$t("base artifact")}</title>
               </g>
             {/if}
             <text class="node-chip" x="10" y="16">
@@ -286,10 +287,10 @@
     {/if}
   </svg>
   <div class="zoom-controls">
-    <button title="Zoom in" onclick={() => zoomBy(1.25)}>+</button>
-    <button title="Zoom out" onclick={() => zoomBy(0.8)}>−</button>
-    <button title="Fit graph" onclick={fit}>Fit</button>
-    <button title="Reset to original view" onclick={centerOnFocus}>Reset</button>
+    <button title={$t("Zoom in")} onclick={() => zoomBy(1.25)}>+</button>
+    <button title={$t("Zoom out")} onclick={() => zoomBy(0.8)}>−</button>
+    <button title={$t("Fit graph")} onclick={fit}>{$t("Fit")}</button>
+    <button title={$t("Reset to original view")} onclick={centerOnFocus}>{$t("Reset")}</button>
   </div>
 </div>
 

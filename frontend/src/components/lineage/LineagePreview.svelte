@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../../lib/i18n.js";
   import AliasPill from "../AliasPill.svelte";
   import SearchBox from "../SearchBox.svelte";
   import { openRunDetail } from "../../lib/router.js";
@@ -43,13 +44,13 @@
           <AliasPill {alias} />
         {/each}
       {:else if node.kind === "cluster"}
-        <span class="kind-chip cluster">cluster</span>
+        <span class="kind-chip cluster">{$t("cluster")}</span>
         <span class="title">{lineageNodeLabel(node)}</span>
       {:else}
-        <span class="kind-chip run">run</span>
+        <span class="kind-chip run">{$t("run")}</span>
         <span class="title">{node.run_name ?? node.run_id}</span>
       {/if}
-      <button class="close-btn" title="Close preview" onclick={onClose}
+      <button class="close-btn" title={$t("Close preview")} onclick={onClose}
         >×</button
       >
     </div>
@@ -57,8 +58,8 @@
       <div class="cluster-body">
         <SearchBox
           bind:value={memberQuery}
-          placeholder="Search {node.member_kind === 'run'
-            ? 'runs'
+          placeholder="{$t("Search")} {node.member_kind === 'run'
+            ? $t("runs")
             : 'versions'}…"
         />
         <ul class="member-list">
@@ -66,35 +67,35 @@
             <li class="member-item">
               <button
                 class="member-row"
-                title="Show in graph"
+                title={$t("Show in graph")}
                 onclick={() => onExtract(member.id)}
               >
                 {lineageNodeLabel(member)}
               </button>
             </li>
           {:else}
-            <li class="member-empty">No matches.</li>
+            <li class="member-empty">{$t("No matches.")}</li>
           {/each}
         </ul>
         {#if node.count <= EXPAND_ALL_LIMIT}
           <button
             class="open-btn"
             onclick={() => onExtractAll(node.members.map((m) => m.id))}
-            >Show all</button
+            >{$t("Show all")}</button
           >
         {/if}
       </div>
     {/if}
     <div class="detail-grid">
       {#if node.kind === "artifact"}
-        <span class="detail-key">Size</span>
+        <span class="detail-key">{$t("Size")}</span>
         <span class="detail-val">{formatSize(node.size_bytes)}</span>
-        <span class="detail-key">Files</span>
+        <span class="detail-key">{$t("Files")}</span>
         <span class="detail-val">{node.num_files}</span>
-        <span class="detail-key">Created</span>
+        <span class="detail-key">{$t("Created")}</span>
         <span class="detail-val">{formatDate(node.created_at)}</span>
         {#if node.producer_run_name}
-          <span class="detail-key">Produced by</span>
+          <span class="detail-key">{$t("Produced by")}</span>
           <span class="detail-val">
             <button
               class="run-link"
@@ -105,7 +106,7 @@
           </span>
         {/if}
       {:else if node.kind === "run"}
-        <span class="detail-key">First linked</span>
+        <span class="detail-key">{$t("First linked")}</span>
         <span class="detail-val">{formatDate(node.created_at)}</span>
       {/if}
     </div>
@@ -115,14 +116,14 @@
           <button
             class="open-btn"
             onclick={() => onOpenVersion(node.artifact_name, node.version)}
-            >Open version</button
+            >{$t("Open version")}</button
           >
         {/if}
       {:else if node.kind === "run"}
         <button
           class="open-btn"
           onclick={() => openRunDetail(node.run_name, node.run_id)}
-          >Open run</button
+          >{$t("Open run")}</button
         >
       {/if}
     </div>

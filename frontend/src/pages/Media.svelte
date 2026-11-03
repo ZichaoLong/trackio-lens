@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import LoadingTrackio from "../components/LoadingTrackio.svelte";
   import Object3DCard from "../components/Object3DCard.svelte";
   import Object3DModal from "../components/Object3DModal.svelte";
@@ -337,24 +338,24 @@
   {:else if !hasMedia}
     <div class="empty-state">
       {#if !project}
-        <h2>Select a project</h2>
-        <p>Pick a project in the sidebar to browse media and tables for a run.</p>
+        <h2>{$t("Select a project")}</h2>
+        <p>{$t("Pick a project in the sidebar to browse media and tables for a run.")}</p>
       {:else if selectedRuns.length === 0}
-        <h2>No runs selected</h2>
-        <p>Select runs in the sidebar to browse media and tables.</p>
+        <h2>{$t("No runs selected")}</h2>
+        <p>{$t("Select runs in the sidebar to browse media and tables.")}</p>
         <pre><code>{'import trackio\ntrackio.init(project="my-project")\ntrackio.log({"loss": 0.5})\ntrackio.finish()'}</code></pre>
       {:else}
-        <h2>No media or tables in this run</h2>
-        <p>Log images, video, audio, 3D objects, and tables by passing Trackio objects to <code>trackio.log()</code>:</p>
+        <h2>{$t("No media or tables in this run")}</h2>
+        <p>{$t("Log images, video, audio, 3D objects, and tables by passing Trackio objects to")} <code>trackio.log()</code>:</p>
         <pre><code>{'import trackio\n\ntrackio.init(project="my-project")\ntrackio.log({"plot": trackio.Image("figure.png")})\ntrackio.log({"clip": trackio.Video("output.mp4")})\ntrackio.log({"audio": trackio.Audio("speech.wav")})\ntrackio.log({"model": trackio.Object3D("scene.glb")})\ntrackio.log({"report": trackio.Html("<h1>Results</h1>")})\n\nimport pandas as pd\ndf = pd.DataFrame({"epoch": [0, 1], "acc": [0.9, 0.95]})\ntrackio.log({"samples": trackio.Table(dataframe=df)})'}</code></pre>
-        <p>Each type appears in its own section here once logged.</p>
+        <p>{$t("Each type appears in its own section here once logged.")}</p>
       {/if}
     </div>
   {:else}
     {#snippet meta(item)}
       <div class="meta">
         <span class="run-dot" style:background={runColor(item)}></span>
-        <span class="meta-text">{item._run}, Step: {item.step}</span>
+        <span class="meta-text">{item._run}{$t(", Step:")} {item.step}</span>
       </div>
     {/snippet}
     {#if mediaItems.images.length > 0}
@@ -364,30 +365,30 @@
             <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
               <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span class="section-title">Images ({filteredImages.length})</span>
+            <span class="section-title">{$t("Images (")}{filteredImages.length})</span>
           </div>
           <div class="image-section-controls">
             <div class="image-filter">
               <input
                 type="text"
                 bind:value={imageFilter}
-                placeholder="Filter images..."
-                aria-label="Filter images"
+                placeholder={$t("Filter images...")}
+                aria-label={$t("Filter images")}
                 onclick={(event) => event.stopPropagation()}
                 onkeydown={(event) => event.stopPropagation()}
               />
             </div>
             <div class="media-control">
-              <span>Sort</span>
+              <span>{$t("Sort")}</span>
               <select
                 id="media-sort-order"
                 bind:value={sortOrder}
-                aria-label="Sort media"
+                aria-label={$t("Sort media")}
                 onclick={(event) => event.stopPropagation()}
                 onkeydown={(event) => event.stopPropagation()}
               >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
+                <option value="newest">{$t("Newest first")}</option>
+                <option value="oldest">{$t("Oldest first")}</option>
               </select>
             </div>
           </div>
@@ -402,7 +403,7 @@
                 onclick={() => openImage(img, null, filteredImages, i)}
                 aria-label={`Open ${img.caption || img.key}`}
               >
-                <span class="image-placeholder">Loading image…</span>
+                <span class="image-placeholder">{$t("Loading image…")}</span>
                 <img
                   src={getFilePath(img)}
                   alt={img.caption || img.key}
@@ -420,12 +421,12 @@
           {/each}
         </div>
         {#if filteredImages.length === 0}
-          <div class="empty-filter-state">No images match this filter.</div>
+          <div class="empty-filter-state">{$t("No images match this filter.")}</div>
         {/if}
         {#if visibleCounts.images < filteredImages.length}
           <div class="pagination-row">
-            <span>Showing {visibleMediaItems.images.length} of {filteredImages.length}</span>
-            <button type="button" class="load-more-button" onclick={() => showMore("images")}>Load more</button>
+            <span>{$t("Showing")} {visibleMediaItems.images.length} {$t("of")} {filteredImages.length}</span>
+            <button type="button" class="load-more-button" onclick={() => showMore("images")}>{$t("Load more")}</button>
           </div>
         {/if}
       </details>
@@ -437,7 +438,7 @@
           <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="section-title">3D Objects ({mediaItems.object3ds.length})</span>
+          <span class="section-title">{$t("3D Objects (")}{mediaItems.object3ds.length})</span>
         </summary>
         <div class="gallery">
           {#each visibleMediaItems.object3ds as object3d}
@@ -450,8 +451,8 @@
         </div>
         {#if visibleCounts.object3ds < mediaItems.object3ds.length}
           <div class="pagination-row">
-            <span>Showing {visibleMediaItems.object3ds.length} of {mediaItems.object3ds.length}</span>
-            <button type="button" class="load-more-button" onclick={() => showMore("object3ds")}>Load more</button>
+            <span>{$t("Showing")} {visibleMediaItems.object3ds.length} {$t("of")} {mediaItems.object3ds.length}</span>
+            <button type="button" class="load-more-button" onclick={() => showMore("object3ds")}>{$t("Load more")}</button>
           </div>
         {/if}
       </details>
@@ -463,7 +464,7 @@
           <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="section-title">Videos ({mediaItems.videos.length})</span>
+          <span class="section-title">{$t("Videos (")}{mediaItems.videos.length})</span>
         </summary>
         <div class="gallery">
           {#each visibleMediaItems.videos as vid}
@@ -478,8 +479,8 @@
         </div>
         {#if visibleCounts.videos < mediaItems.videos.length}
           <div class="pagination-row">
-            <span>Showing {visibleMediaItems.videos.length} of {mediaItems.videos.length}</span>
-            <button type="button" class="load-more-button" onclick={() => showMore("videos")}>Load more</button>
+            <span>{$t("Showing")} {visibleMediaItems.videos.length} {$t("of")} {mediaItems.videos.length}</span>
+            <button type="button" class="load-more-button" onclick={() => showMore("videos")}>{$t("Load more")}</button>
           </div>
         {/if}
       </details>
@@ -491,7 +492,7 @@
           <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="section-title">Audio ({mediaItems.audios.length})</span>
+          <span class="section-title">{$t("Audio (")}{mediaItems.audios.length})</span>
         </summary>
         <div class="gallery">
           {#each visibleMediaItems.audios as aud}
@@ -504,8 +505,8 @@
         </div>
         {#if visibleCounts.audios < mediaItems.audios.length}
           <div class="pagination-row">
-            <span>Showing {visibleMediaItems.audios.length} of {mediaItems.audios.length}</span>
-            <button type="button" class="load-more-button" onclick={() => showMore("audios")}>Load more</button>
+            <span>{$t("Showing")} {visibleMediaItems.audios.length} {$t("of")} {mediaItems.audios.length}</span>
+            <button type="button" class="load-more-button" onclick={() => showMore("audios")}>{$t("Load more")}</button>
           </div>
         {/if}
       </details>
@@ -517,7 +518,7 @@
           <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="section-title">Tables ({mediaItems.tables.length})</span>
+          <span class="section-title">{$t("Tables (")}{mediaItems.tables.length})</span>
         </summary>
         {#each visibleMediaItems.tables as tbl}
           <div class="table-section">
@@ -543,9 +544,9 @@
                             class="table-image-frame"
                             type="button"
                             onclick={() => openImage(cell, tbl)}
-                            aria-label="Open table image"
+                            aria-label={$t("Open table image")}
                           >
-                            <span class="table-image-placeholder">Loading…</span>
+                            <span class="table-image-placeholder">{$t("Loading…")}</span>
                             <img
                               class="table-image"
                               src={getFilePath(cell)}
@@ -563,9 +564,9 @@
                                 class="table-image-frame"
                                 type="button"
                                 onclick={() => openImage(img, tbl)}
-                                aria-label="Open table image"
+                                aria-label={$t("Open table image")}
                               >
-                                <span class="table-image-placeholder">Loading…</span>
+                                <span class="table-image-placeholder">{$t("Loading…")}</span>
                                 <img
                                   class="table-image"
                                   src={getFilePath(img)}
@@ -611,8 +612,8 @@
         {/each}
         {#if visibleCounts.tables < mediaItems.tables.length}
           <div class="pagination-row">
-            <span>Showing {visibleMediaItems.tables.length} of {mediaItems.tables.length}</span>
-            <button type="button" class="load-more-button" onclick={() => showMore("tables")}>Load more</button>
+            <span>{$t("Showing")} {visibleMediaItems.tables.length} {$t("of")} {mediaItems.tables.length}</span>
+            <button type="button" class="load-more-button" onclick={() => showMore("tables")}>{$t("Load more")}</button>
           </div>
         {/if}
       </details>
@@ -624,7 +625,7 @@
           <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="section-title">HTML ({mediaItems.htmls.length})</span>
+          <span class="section-title">{$t("HTML (")}{mediaItems.htmls.length})</span>
         </summary>
         <div class="gallery html-gallery">
           {#each visibleMediaItems.htmls as item}
@@ -646,8 +647,8 @@
         </div>
         {#if visibleCounts.htmls < mediaItems.htmls.length}
           <div class="pagination-row">
-            <span>Showing {visibleMediaItems.htmls.length} of {mediaItems.htmls.length}</span>
-            <button type="button" class="load-more-button" onclick={() => showMore("htmls")}>Load more</button>
+            <span>{$t("Showing")} {visibleMediaItems.htmls.length} {$t("of")} {mediaItems.htmls.length}</span>
+            <button type="button" class="load-more-button" onclick={() => showMore("htmls")}>{$t("Load more")}</button>
           </div>
         {/if}
       </details>
@@ -661,27 +662,27 @@
       class="image-modal"
       role="dialog"
       aria-modal="true"
-      aria-label="Image preview"
+      aria-label={$t("Image preview")}
       tabindex="-1"
       onclick={(event) => event.stopPropagation()}
       onkeydown={(event) => event.stopPropagation()}
     >
-      <button class="image-modal-close" type="button" onclick={closeImage} aria-label="Close image preview">×</button>
+      <button class="image-modal-close" type="button" onclick={closeImage} aria-label={$t("Close image preview")}>×</button>
       {#if selectedImageList.length > 1}
         <button
           class="image-modal-nav image-modal-prev"
           type="button"
           onclick={showPreviousImage}
-          aria-label="Previous image"
+          aria-label={$t("Previous image")}
         >
           ‹
         </button>
       {/if}
       <div class="modal-image-frame">
-        <span class="modal-image-placeholder">Loading image…</span>
+        <span class="modal-image-placeholder">{$t("Loading image…")}</span>
         <img
           src={getFilePath(selectedImage)}
-          alt={selectedImage.caption || selectedImage.key || "Image preview"}
+          alt={selectedImage.caption || selectedImage.key || $t("Image preview")}
           decoding="async"
           onload={markImageLoaded}
           onerror={markImageFailed}
@@ -692,7 +693,7 @@
           class="image-modal-nav image-modal-next"
           type="button"
           onclick={showNextImage}
-          aria-label="Next image"
+          aria-label={$t("Next image")}
         >
           ›
         </button>
@@ -706,7 +707,7 @@
         {/if}
         <div class="meta image-modal-meta">
           <span class="run-dot" style:background={runColor(selectedImage)}></span>
-          <span class="meta-text">{selectedImage._run}, Step: {selectedImage.step}</span>
+          <span class="meta-text">{selectedImage._run}{$t(", Step:")} {selectedImage.step}</span>
           {#if selectedImageIndex !== null && selectedImageList.length > 1}
             <span class="image-modal-count">{selectedImageIndex + 1} / {selectedImageList.length}</span>
           {/if}

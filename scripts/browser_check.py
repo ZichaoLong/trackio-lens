@@ -245,6 +245,53 @@ def check(base, credentials_path, output, strict=False):
             page.goto(base + "/settings")
             expect(page.locator(".account")).to_be_visible()
             context.close()
+        for width in (1440, 390):
+            context = browser.new_context(
+                viewport={"width": width, "height": 844}, locale="zh-CN"
+            )
+            page = context.new_page()
+            page.goto(base + "/runs?project=lens-demo")
+            page.get_by_label("用户名", exact=True).fill(credentials["username"])
+            page.get_by_label("密码", exact=True).fill(credentials["password"])
+            page.get_by_role("button", name="登录", exact=True).click()
+            expect(page.locator(".runs-table")).to_be_visible()
+            expect(page.get_by_role("button", name="指标", exact=True)).to_be_visible()
+            expect(page.locator(".runs-table")).to_contain_text(
+                "experiment-0-long-name-learning-rate-comparison"
+            )
+            for route, selector in (
+                ("/", ".plot-container"),
+                ("/reports", ".report-card"),
+                ("/media", ".media-page"),
+                ("/files", ".file-list"),
+                ("/settings", ".account"),
+            ):
+                page.goto(base + route + "?project=lens-demo")
+                expect(page.locator(selector).first).to_be_visible(timeout=15000)
+                assert page.evaluate(
+                    "document.documentElement.scrollWidth <= innerWidth"
+                ), ("zh-CN", width, route)
+                if route == "/settings":
+                    expect(page.get_by_role("button", name="保存账户")).to_be_visible()
+                    page.locator("#lens-language").select_option("en")
+                    expect(
+                        page.get_by_role("button", name="Save account")
+                    ).to_be_visible()
+                    page.reload()
+                    expect(
+                        page.get_by_role("button", name="Save account")
+                    ).to_be_visible()
+                    page.locator("#lens-language").select_option("zh-CN")
+                    page.reload()
+                    expect(page.get_by_role("button", name="保存账户")).to_be_visible()
+                if route == "/reports":
+                    expect(page.locator(".report-card").first).to_contain_text(
+                        "Synthetic evaluation report"
+                    )
+                page.screenshot(
+                    path=str(output / f"zh-{width}-{route.strip('/') or 'metrics'}.png")
+                )
+            context.close()
         browser.close()
     (output / "results.json").write_text(json.dumps(results, indent=2) + "\n")
     print(

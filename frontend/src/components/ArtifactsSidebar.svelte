@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { tick } from "svelte";
   import SidebarShell from "./SidebarShell.svelte";
   import SearchBox from "./SearchBox.svelte";
@@ -193,20 +194,20 @@
 >
   {#snippet header()}
     <div class="tree-search">
-      <span class="search-label">Artifacts</span>
-      <SearchBox bind:value={search} placeholder="Search artifacts…" />
+      <span class="search-label">{$t("Artifacts")}</span>
+      <SearchBox bind:value={search} placeholder={$t("Search artifacts…")} />
     </div>
   {/snippet}
 
   <div class="tree">
     {#if loading}
-      <div class="tree-empty">Loading…</div>
+      <div class="tree-empty">{$t("Loading…")}</div>
     {:else if error}
-      <div class="tree-empty">Couldn't load artifacts.</div>
+      <div class="tree-empty">{$t("Couldn't load artifacts.")}</div>
     {:else if artifacts.length === 0}
-      <div class="tree-empty">No artifacts in this project.</div>
+      <div class="tree-empty">{$t("No artifacts in this project.")}</div>
     {:else if filteredGroups.length === 0}
-      <div class="tree-empty">No artifacts match “{search}”.</div>
+      <div class="tree-empty">{$t("No artifacts match “")}{search}”.</div>
     {:else}
       {#each filteredGroups as group}
         <div class="tree-type">

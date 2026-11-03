@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { onMount, tick } from "svelte";
   import embed from "vega-embed";
   import { buildColorSpecKey } from "../lib/dataProcessing.js";
@@ -379,8 +380,8 @@
       type="button"
       class="toolbar-btn"
       onclick={downloadCSV}
-      title="Download this plot's data as a CSV file"
-      aria-label="Download this plot's data as a CSV file"
+      title={$t("Download this plot's data as a CSV file")}
+      aria-label={$t("Download this plot's data as a CSV file")}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -393,8 +394,8 @@
       type="button"
       class="toolbar-btn"
       onclick={downloadImage}
-      title="Download this chart as a PNG image"
-      aria-label="Download this chart as a PNG image"
+      title={$t("Download this chart as a PNG image")}
+      aria-label={$t("Download this chart as a PNG image")}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -406,8 +407,8 @@
       type="button"
       class="toolbar-btn"
       onclick={toggleFullscreen}
-      title="Open this chart in the browser's fullscreen mode"
-      aria-label="Open this chart in the browser's fullscreen mode"
+      title={$t("Open this chart in the browser's fullscreen mode")}
+      aria-label={$t("Open this chart in the browser's fullscreen mode")}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="15 3 21 3 21 9"/>
@@ -420,8 +421,8 @@
   {#if draggable}
     <div
       class="drag-handle"
-      title="Drag to reorder this plot in the list"
-      aria-label="Drag to reorder this plot in the list"
+      title={$t("Drag to reorder this plot in the list")}
+      aria-label={$t("Drag to reorder this plot in the list")}
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
         <circle cx="9" cy="5" r="2"/><circle cx="15" cy="5" r="2"/>
@@ -468,8 +469,8 @@
         type="button"
         class="toolbar-btn"
         onclick={downloadCSV}
-        title="Download this plot's data as a CSV file"
-        aria-label="Download this plot's data as a CSV file"
+        title={$t("Download this plot's data as a CSV file")}
+        aria-label={$t("Download this plot's data as a CSV file")}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -482,8 +483,8 @@
         type="button"
         class="toolbar-btn"
         onclick={downloadImage}
-        title="Download this chart as a PNG image"
-        aria-label="Download this chart as a PNG image"
+        title={$t("Download this chart as a PNG image")}
+        aria-label={$t("Download this chart as a PNG image")}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -495,8 +496,8 @@
         type="button"
         class="toolbar-btn"
         onclick={() => leaveFullscreen()}
-        title="Exit fullscreen and return to the metrics view"
-        aria-label="Exit fullscreen and return to the metrics view"
+        title={$t("Exit fullscreen and return to the metrics view")}
+        aria-label={$t("Exit fullscreen and return to the metrics view")}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="4 14 10 14 10 20"/>

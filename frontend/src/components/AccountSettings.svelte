@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { onMount } from "svelte";
   import { acceptSession, connection } from "../lib/lens.js";
   let username = $state("");
@@ -35,18 +36,18 @@
   }
 </script>
 
-<section class="account" aria-label="Account">
-  <h3>Account</h3>
-  <p>Use a personal password or passphrase to sign in on your other devices.</p>
+<section class="account" aria-label={$t("Account")}>
+  <h3>{$t("Account")}</h3>
+  <p>{$t("Use a personal password or passphrase to sign in on your other devices.")}</p>
   <form onsubmit={save}>
-    <label>Username<input bind:value={username} autocomplete="username" required maxlength="80" /></label>
-    <label>Current password<input type="password" bind:value={currentPassword} autocomplete="current-password" required /></label>
-    <label>New password or passphrase<input type="password" bind:value={password} autocomplete="new-password" minlength="14" maxlength="256" required /></label>
-    <label>Repeat new password<input type="password" bind:value={repeat} autocomplete="new-password" minlength="14" maxlength="256" required /></label>
-    <p class="hint">Use 14–256 characters. You can use a memorable phrase or a password manager.</p>
-    <div class="actions"><button type="submit" disabled={busy}>Save account</button><button type="button" disabled={busy} onclick={revoke}>Sign out all devices</button></div>
-    {#if error}<p class="error" role="alert">{error}</p>{/if}
-    {#if message}<p role="status">{message}</p>{/if}
+    <label>{$t("Username")}<input bind:value={username} autocomplete="username" required maxlength="80" /></label>
+    <label>{$t("Current password")}<input type="password" bind:value={currentPassword} autocomplete="current-password" required /></label>
+    <label>{$t("New password or passphrase")}<input type="password" bind:value={password} autocomplete="new-password" minlength="14" maxlength="256" required /></label>
+    <label>{$t("Repeat new password")}<input type="password" bind:value={repeat} autocomplete="new-password" minlength="14" maxlength="256" required /></label>
+    <p class="hint">{$t("Use 14–256 characters. You can use a memorable phrase or a password manager.")}</p>
+    <div class="actions"><button type="submit" disabled={busy}>{$t("Save account")}</button><button type="button" disabled={busy} onclick={revoke}>{$t("Sign out all devices")}</button></div>
+    {#if error}<p class="error" role="alert">{$t(error)}</p>{/if}
+    {#if message}<p role="status">{$t(message)}</p>{/if}
   </form>
 </section>
 <style>

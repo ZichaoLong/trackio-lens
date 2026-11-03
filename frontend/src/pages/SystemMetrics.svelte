@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { onMount } from "svelte";
   import LinePlot from "../components/LinePlot.svelte";
   import Accordion from "../components/Accordion.svelte";
@@ -522,31 +523,31 @@
     <LoadingTrackio />
   {:else if loadError && !hasLoaded}
     <div class="empty-state">
-      <h2>Unable to load system metrics</h2>
+      <h2>{$t("Unable to load system metrics")}</h2>
       <p>{loadError}</p>
     </div>
   {:else if !project}
     <div class="empty-state">
-      <h2>No projects</h2>
+      <h2>{$t("No projects")}</h2>
       <p>
-        Create a project by calling <code>trackio.init(project="…")</code> in your training script.
+        {$t("Create a project by calling")} <code>trackio.init(project="…")</code> {$t("in your training script.")}
       </p>
     </div>
   {:else if selectedRuns.length === 0}
     <div class="empty-state">
-      <h2>No run selected</h2>
-      <p>Select one or more runs in the sidebar.</p>
+      <h2>{$t("No run selected")}</h2>
+      <p>{$t("Select one or more runs in the sidebar.")}</p>
     </div>
   {:else if systemData.length === 0}
     <div class="empty-state">
-      <h2>No System Metrics Available</h2>
-      <p>System metrics will appear here once logged. To enable automatic logging:</p>
+      <h2>{$t("No System Metrics Available")}</h2>
+      <p>{$t("System metrics will appear here once logged. To enable automatic logging:")}</p>
       <pre><code>{'import trackio\n\n# CPU/system metrics auto-enable when psutil is installed:\nrun = trackio.init(project="my-project")\n\n# Or explicitly enable/disable them:\nrun = trackio.init(project="my-project", auto_log_cpu=True)\n\n# Manually log at any time:\ntrackio.log_cpu()\ntrackio.log_gpu()'}</code></pre>
-      <p><strong>Setup:</strong></p>
+      <p><strong>{$t("Setup:")}</strong></p>
       <ul>
-        <li><strong>CPU/system metrics:</strong> <code>pip install trackio[cpu]</code> (requires <code>psutil</code>)</li>
-        <li><strong>NVIDIA GPU:</strong> <code>pip install trackio[gpu]</code> (requires <code>nvidia-ml-py</code>)</li>
-        <li><strong>Apple Silicon:</strong> <code>pip install trackio[apple-gpu]</code> (requires <code>psutil</code>)</li>
+        <li><strong>{$t("CPU/system metrics:")}</strong> <code>pip install trackio[cpu]</code> {$t("(requires")} <code>psutil</code>)</li>
+        <li><strong>{$t("NVIDIA GPU:")}</strong> <code>pip install trackio[gpu]</code> {$t("(requires")} <code>nvidia-ml-py</code>)</li>
+        <li><strong>{$t("Apple Silicon:")}</strong> <code>pip install trackio[apple-gpu]</code> {$t("(requires")} <code>psutil</code>)</li>
       </ul>
     </div>
   {:else}

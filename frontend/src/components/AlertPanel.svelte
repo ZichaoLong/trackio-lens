@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   let { alerts = [] } = $props();
 
   const BADGES = { info: "🔵", warn: "🟡", error: "🔴" };
@@ -18,7 +19,7 @@
 {#if alerts.length > 0}
   <div class="alert-panel" class:collapsed>
     <div class="alert-header" role="button" tabindex="0" onclick={() => (collapsed = !collapsed)} onkeydown={(e) => e.key === "Enter" && (collapsed = !collapsed)}>
-      <span class="alert-title">Alerts ({alerts.length})</span>
+      <span class="alert-title">{$t("Alerts (")}{alerts.length})</span>
       {#if !collapsed}
         <div class="filter-pills">
           <button
@@ -28,7 +29,7 @@
               e.stopPropagation();
               filterLevel = null;
             }}
-            >All</button
+            >{$t("All")}</button
           >
           <button
             class="pill"
@@ -37,7 +38,7 @@
               e.stopPropagation();
               filterLevel = "info";
             }}
-            >🔵 Info</button
+            >{$t("🔵 Info")}</button
           >
           <button
             class="pill"
@@ -46,7 +47,7 @@
               e.stopPropagation();
               filterLevel = "warn";
             }}
-            >🟡 Warn</button
+            >{$t("🟡 Warn")}</button
           >
           <button
             class="pill"
@@ -55,7 +56,7 @@
               e.stopPropagation();
               filterLevel = "error";
             }}
-            >🔴 Error</button
+            >{$t("🔴 Error")}</button
           >
         </div>
       {/if}

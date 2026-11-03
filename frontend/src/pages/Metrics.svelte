@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { onMount } from "svelte";
   import { getQueryParam } from "../lib/router.js";
   import LinePlot from "../components/LinePlot.svelte";
@@ -440,24 +441,24 @@
     <LoadingTrackio />
   {:else if !project}
     <div class="empty-state">
-      <h2>No projects</h2>
+      <h2>{$t("No projects")}</h2>
       <p>
-        Create a project by calling <code>trackio.init(project="…")</code> in your training script.
+        {$t("Create a project by calling")} <code>trackio.init(project="…")</code> {$t("in your training script.")}
       </p>
     </div>
   {:else if selectedRuns.length === 0}
     <div class="empty-state">
-      <h2>No run selected</h2>
-      <p>Select one or more runs in the sidebar.</p>
+      <h2>{$t("No run selected")}</h2>
+      <p>{$t("Select one or more runs in the sidebar.")}</p>
     </div>
   {:else if masterData.length === 0}
     <div class="empty-state">
-      <h2>Start logging with Trackio</h2>
-      <p>You can create a new project by calling <code>trackio.init()</code>:</p>
+      <h2>{$t("Start logging with Trackio")}</h2>
+      <p>{$t("You can create a new project by calling")} <code>trackio.init()</code>:</p>
       <pre><code>{'import trackio\ntrackio.init(project="my-project")'}</code></pre>
-      <p>Then call <code>trackio.log()</code> to log metrics:</p>
+      <p>{$t("Then call")} <code>trackio.log()</code> {$t("to log metrics:")}</p>
       <pre><code>{'for i in range(10):\n    trackio.log({"loss": 1/(i+1)})'}</code></pre>
-      <p>Finally, call <code>trackio.finish()</code> to finish the run:</p>
+      <p>{$t("Finally, call")} <code>trackio.finish()</code> {$t("to finish the run:")}</p>
       <pre><code>{'trackio.finish()'}</code></pre>
     </div>
   {:else}
@@ -585,7 +586,7 @@
 
     {#if filteredHistogramMetrics.length > 0}
       <Accordion
-        label="histograms ({filteredHistogramMetrics.length})"
+        label="{$t("histograms (")}{filteredHistogramMetrics.length})"
         open={true}
         hidden={!showHeaders}
       >

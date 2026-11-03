@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { onMount } from "svelte";
   import AliasPill from "../components/AliasPill.svelte";
   import {
@@ -144,12 +145,12 @@
 <div class="registry-page">
   <header class="page-header">
     <div>
-      <h1>Registries</h1>
-      <p>Browse promoted artifact versions across projects.</p>
+      <h1>{$t("Registries")}</h1>
+      <p>{$t("Browse promoted artifact versions across projects.")}</p>
     </div>
-    <div class="source-controls" aria-label="Registry location">
+    <div class="source-controls" aria-label={$t("Registry location")}>
       <div class="source-toggle">
-        <button class:active={source === "local"} onclick={useLocal}>Local</button>
+        <button class:active={source === "local"} onclick={useLocal}>{$t("Local")}</button>
         <button
           class:active={source === "bucket"}
           onclick={useBucket}>HF Bucket</button
@@ -158,7 +159,7 @@
       {#if source === "bucket"}
         <div class="bucket-picker">
           <input
-            aria-label="Registry bucket"
+            aria-label={$t("Registry bucket")}
             list="registry-buckets"
             bind:value={bucketInput}
             onkeydown={(event) => event.key === "Enter" && openBucket()}
@@ -169,7 +170,7 @@
               <option value={bucket}></option>
             {/each}
           </datalist>
-          <button class="open-button" onclick={openBucket}>Open</button>
+          <button class="open-button" onclick={openBucket}>{$t("Open")}</button>
         </div>
       {/if}
     </div>
@@ -177,12 +178,12 @@
 
   {#if staticUnavailable}
     <div class="empty-state">
-      <h2>A live Trackio server is required</h2>
-      <p>Registry browsing is not available in a static dashboard snapshot.</p>
+      <h2>{$t("A live Trackio server is required")}</h2>
+      <p>{$t("Registry browsing is not available in a static dashboard snapshot.")}</p>
     </div>
   {:else if error}
     <div class="empty-state error-state">
-      <h2>Couldn’t load registries</h2>
+      <h2>{$t("Couldn’t load registries")}</h2>
       <p>{error}</p>
     </div>
   {:else}
@@ -193,9 +194,9 @@
           <span class="count">{registries.length}</span>
         </div>
         {#if loading && registries.length === 0}
-          <div class="sidebar-empty">Loading…</div>
+          <div class="sidebar-empty">{$t("Loading…")}</div>
         {:else if registries.length === 0}
-          <div class="sidebar-empty">No registries found.</div>
+          <div class="sidebar-empty">{$t("No registries found.")}</div>
         {:else}
           {#each registries as registry}
             <button
@@ -214,30 +215,30 @@
 
       <main class="registry-detail">
         {#if loading && !details}
-          <div class="detail-empty">Loading registry…</div>
+          <div class="detail-empty">{$t("Loading registry…")}</div>
         {:else if !details}
-          <div class="detail-empty">Select a registry to inspect it.</div>
+          <div class="detail-empty">{$t("Select a registry to inspect it.")}</div>
         {:else}
           <section class="registry-summary">
             <div>
-              <div class="eyebrow">Registry</div>
+              <div class="eyebrow">{$t("Registry")}</div>
               <h2>{details.name}</h2>
               {#if details.description}<p>{details.description}</p>{/if}
             </div>
             <div class="summary-meta">
-              <span>{details.bucket_id ? `Bucket · ${details.bucket_id}` : "Local"}</span>
-              <span>Created {formatDate(details.created_at)}</span>
+              <span>{details.bucket_id ? `Bucket · ${details.bucket_id}` : $t("Local")}</span>
+              <span>{$t("Created")} {formatDate(details.created_at)}</span>
             </div>
           </section>
 
           <div class="content-grid">
             <section class="collections-panel">
               <div class="section-title">
-                <h3>Collections</h3>
+                <h3>{$t("Collections")}</h3>
                 <span>{details.collections.length}</span>
               </div>
               {#if details.collections.length === 0}
-                <div class="panel-empty">No collections in this registry.</div>
+                <div class="panel-empty">{$t("No collections in this registry.")}</div>
               {:else}
                 <div class="collection-list">
                   {#each details.collections as item}
@@ -263,19 +264,19 @@
               {#if collection}
                 <div class="collection-header">
                   <div>
-                    <div class="eyebrow">{collection.type} collection</div>
+                    <div class="eyebrow">{collection.type} {$t("collection")}</div>
                     <h3>{collection.name}</h3>
                     {#if collection.description}<p>{collection.description}</p>{/if}
                   </div>
-                  <span class="version-count">{collection.num_links} linked</span>
+                  <span class="version-count">{collection.num_links} {$t("linked")}</span>
                 </div>
                 {#if collection.links.length === 0}
-                  <div class="panel-empty">No versions have been linked.</div>
+                  <div class="panel-empty">{$t("No versions have been linked.")}</div>
                 {:else}
                   <div class="versions-table-wrap">
                     <table class="versions-table">
                       <thead>
-                        <tr><th>Version</th><th>Aliases</th><th>Source</th><th>Storage</th><th>Linked</th></tr>
+                        <tr><th>{$t("Version")}</th><th>{$t("Aliases")}</th><th>{$t("Source")}</th><th>{$t("Storage")}</th><th>{$t("Linked")}</th></tr>
                       </thead>
                       <tbody>
                         {#each collection.links as link}
@@ -297,18 +298,18 @@
                   </div>
                 {/if}
               {:else}
-                <div class="panel-empty">Select a collection.</div>
+                <div class="panel-empty">{$t("Select a collection.")}</div>
               {/if}
             </section>
           </div>
 
           <section class="events-panel">
             <div class="section-title">
-              <h3>Audit history</h3>
+              <h3>{$t("Audit history")}</h3>
               <span>{details.events.length}</span>
             </div>
             {#if details.events.length === 0}
-              <div class="panel-empty">No registry events.</div>
+              <div class="panel-empty">{$t("No registry events.")}</div>
             {:else}
               <div class="event-list">
                 {#each [...details.events].reverse() as event}

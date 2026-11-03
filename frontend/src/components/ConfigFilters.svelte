@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { configFilterKeys, configKeyLabel } from "../lib/runFilters.js";
 
   let { configs = {}, groups = $bindable([]), matchCount = null } = $props();
@@ -35,60 +36,60 @@
 
 <div class="config-filters">
   <div class="filter-heading">
-    <button onclick={edit} aria-haspopup="dialog">Config filters{count ? ` (${count})` : ""}</button>
-    {#if count}<button onclick={() => { groups = []; }}>Clear</button>{/if}
+    <button onclick={edit} aria-haspopup="dialog">{$t("Config filters")}{count ? ` (${count})` : ""}</button>
+    {#if count}<button onclick={() => { groups = []; }}>{$t("Clear")}</button>{/if}
   </div>
   {#if count}
-    <div class="active-filters" aria-label="Active configuration filters">
+    <div class="active-filters" aria-label={$t("Active configuration filters")}>
       {#each activeGroups as group, i}
-        {#if i > 0}<div class="join">OR</div>{/if}
+        {#if i > 0}<div class="join">{$t("OR")}</div>{/if}
         {#each group as rule, j}
-          <div class="filter-summary">{j > 0 ? "AND " : ""}{configKeyLabel(rule.key)} {rule.operator} {JSON.stringify(rule.value)}</div>
+          <div class="filter-summary">{j > 0 ? $t("AND") + " " : ""}{configKeyLabel(rule.key)} {rule.operator} {JSON.stringify(rule.value)}</div>
         {/each}
       {/each}
     </div>
-    {#if matchCount === 0}<p role="status">No runs match the current filters. Edit or clear filters to show runs.</p>{/if}
+    {#if matchCount === 0}<p role="status">{$t("No runs match the current filters. Edit or clear filters to show runs.")}</p>{/if}
   {/if}
 </div>
 
 <dialog bind:this={dialog} aria-labelledby="config-filter-title" onclose={() => { open = false; draft = []; }}>
   {#if open}
   <div class="dialog-heading">
-    <h2 id="config-filter-title">Config filters</h2>
-    <button aria-label="Close configuration filters" onclick={close}>×</button>
+    <h2 id="config-filter-title">{$t("Config filters")}</h2>
+    <button aria-label={$t("Close configuration filters")} onclick={close}>×</button>
   </div>
-  <p>Match all conditions in a group, or any of the groups. Missing keys never match; numeric comparisons require number values.</p>
+  <p>{$t("Match all conditions in a group, or any of the groups. Missing keys never match; numeric comparisons require number values.")}</p>
   <div class="editor">
   {#each draft as group, i}
-    {#if i > 0}<div class="join">OR</div>{/if}
+    {#if i > 0}<div class="join">{$t("OR")}</div>{/if}
     <div class="filter-group">
       {#each group as rule, j}
-        {#if j > 0}<div class="join">AND</div>{/if}
+        {#if j > 0}<div class="join">{$t("AND")}</div>{/if}
         <div class="rule">
-          <select aria-label="Configuration key" bind:value={rule.key}>
-            <option value="">Select config key</option>
+          <select aria-label={$t("Configuration key")} bind:value={rule.key}>
+            <option value="">{$t("Select config key")}</option>
             {#each keys as key}<option value={key.value}>{key.label}</option>{/each}
           </select>
-          <select aria-label="Comparison operator" bind:value={rule.operator}>
+          <select aria-label={$t("Comparison operator")} bind:value={rule.operator}>
             {#each ["=", "!=", ">", ">=", "<", "<=", "contains"] as operator}
               <option value={operator}>{operator}</option>
             {/each}
           </select>
-          <input aria-label="Configuration value" placeholder="Value" bind:value={rule.value} />
-          <button class="remove" aria-label="Remove condition" onclick={() => remove(i, j)}>×</button>
+          <input aria-label={$t("Configuration value")} placeholder={$t("Value")} bind:value={rule.value} />
+          <button class="remove" aria-label={$t("Remove condition")} onclick={() => remove(i, j)}>×</button>
         </div>
       {/each}
-      <button onclick={() => { draft[i] = [...group, newRule()]; }}>+ AND</button>
+      <button onclick={() => { draft[i] = [...group, newRule()]; }}>{$t("+ AND")}</button>
     </div>
   {/each}
   <div class="actions">
     <button onclick={() => { draft = [...draft, [newRule()]]; }}>{draft.length ? "+ OR group" : "+ Add filter"}</button>
-    {#if draft.length}<button onclick={() => { draft = []; }}>Clear draft</button>{/if}
+    {#if draft.length}<button onclick={() => { draft = []; }}>{$t("Clear draft")}</button>{/if}
   </div>
   </div>
   <div class="dialog-actions">
-    <button onclick={close}>Cancel</button>
-    <button class="apply" onclick={apply}>Apply filters</button>
+    <button onclick={close}>{$t("Cancel")}</button>
+    <button class="apply" onclick={apply}>{$t("Apply filters")}</button>
   </div>
   {/if}
 </dialog>

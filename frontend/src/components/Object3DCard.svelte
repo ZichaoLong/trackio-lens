@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   let {
     item,
     compact = false,
@@ -62,7 +63,7 @@
     {#if item._run !== undefined}
       <div class="object-meta">
         <span class="run-dot" style:background={color}></span>
-        <span class="meta-text">{item._run}, Step: {item.step}</span>
+        <span class="meta-text">{item._run}{$t(", Step:")} {item.step}</span>
       </div>
     {/if}
   </div>

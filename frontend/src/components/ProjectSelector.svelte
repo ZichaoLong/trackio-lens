@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import Dropdown from "./Dropdown.svelte";
 
   let {
@@ -9,11 +10,11 @@
 </script>
 
 {#if projectLocked}
-  <div class="section-label">Project</div>
+  <div class="section-label">{$t("Project")}</div>
   <div class="locked-project">{selectedProject ?? "—"}</div>
 {:else}
   <Dropdown
-    label="Project"
+    label={$t("Project")}
     choices={projects}
     bind:value={selectedProject}
     filterable={true}

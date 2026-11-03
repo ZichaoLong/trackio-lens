@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import LoadingTrackio from "../components/LoadingTrackio.svelte";
   import { getAlerts, getLogs } from "../lib/api.js";
 
@@ -120,20 +121,19 @@
     <LoadingTrackio />
   {:else if allAlerts.length === 0 && markdownReports.length === 0}
     <div class="empty-state">
-      <h2>No alerts or reports yet</h2>
+      <h2>{$t("No alerts or reports yet")}</h2>
       <p>
-        Alerts are recorded when your training script calls <code>trackio.alert()</code>.
-        Reports are logged as Markdown via <code>trackio.log()</code>.
+        {$t("Alerts are recorded when your training script calls")} <code>trackio.alert()</code>{$t(". Reports are logged as Markdown via")} <code>trackio.log()</code>.
       </p>
       <pre><code>{'import trackio\nfrom trackio import AlertLevel\n\ntrackio.init(project="my-project")\ntrackio.alert("Low validation loss", text="Consider saving a checkpoint.", level=AlertLevel.INFO)\ntrackio.log({"reports/summary": trackio.Markdown("# My Report\\nResults look good.")})'}</code></pre>
     </div>
   {:else}
     {#if markdownReports.length > 0}
       <section class="reports-section">
-        <h3 class="section-title">Reports ({markdownReports.length})</h3>
+        <h3 class="section-title">{$t("Reports (")}{markdownReports.length})</h3>
         {#each markdownReports as report}
           <div class="report-card">
-            <div class="report-meta">{report.key} &middot; {report.run} &middot; step {report.step}</div>
+            <div class="report-meta">{report.key} &middot; {report.run} {$t("· step")} {report.step}</div>
             <div class="report-content">{@html renderMarkdown(report.content)}</div>
           </div>
         {/each}
@@ -142,36 +142,36 @@
 
     {#if allAlerts.length > 0}
       <section class="alerts-section">
-        <h3 class="section-title">Alerts ({allAlerts.length})</h3>
+        <h3 class="section-title">{$t("Alerts (")}{allAlerts.length})</h3>
         <div class="controls">
           <div class="control">
             <div class="filter-pills">
               <button
                 class="pill"
                 class:active={filterLevel === null}
-                onclick={() => (filterLevel = null)}>All</button
+                onclick={() => (filterLevel = null)}>{$t("All")}</button
               >
               <button
                 class="pill"
                 class:active={filterLevel === "info"}
-                onclick={() => (filterLevel = "info")}>Info</button
+                onclick={() => (filterLevel = "info")}>{$t("Info")}</button
               >
               <button
                 class="pill"
                 class:active={filterLevel === "warn"}
-                onclick={() => (filterLevel = "warn")}>Warn</button
+                onclick={() => (filterLevel = "warn")}>{$t("Warn")}</button
               >
               <button
                 class="pill"
                 class:active={filterLevel === "error"}
-                onclick={() => (filterLevel = "error")}>Error</button
+                onclick={() => (filterLevel = "error")}>{$t("Error")}</button
               >
             </div>
           </div>
         </div>
 
         {#if alerts.length === 0}
-          <p class="filter-empty">No alerts for this level.</p>
+          <p class="filter-empty">{$t("No alerts for this level.")}</p>
         {:else}
           <table class="alerts-table">
             <thead>

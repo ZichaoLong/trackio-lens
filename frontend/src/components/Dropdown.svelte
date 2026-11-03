@@ -1,4 +1,5 @@
 <script>
+  import { t } from "../lib/i18n.js";
   import { tick } from "svelte";
 
   let {
@@ -164,7 +165,7 @@
           onblur={handleBlur}
           onfocus={handleFocus}
           readonly={!filterable}
-          placeholder={value === null ? "Select..." : ""}
+          placeholder={value === null ? $t("Select...") : ""}
         />
         <div class="icon-wrap">
           <svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
