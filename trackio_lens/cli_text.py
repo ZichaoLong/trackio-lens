@@ -32,7 +32,6 @@ MESSAGES = {
     "Follow complete lines until --done-file exists or interrupted": "持续读取完整行，直到完成标记出现或被中断",
     "Administrator password changed. Administrator sessions revoked. Program token retained.": "密码已修改，管理员浏览器会话已撤销，程序 token 保留。",
     "All browser sessions revoked.": "所有浏览器会话已撤销。",
-    "Use a password or passphrase of 14 to 256 characters": "请使用 14–256 个字符的密码或口令短语",
     "Username must contain between 1 and 80 characters": "用户名须为 1–80 个字符",
     "Credentials already exist; use reset-password to rotate": "账户已经初始化，请使用 reset-password 重置",
     "Current password is incorrect": "当前密码不正确",

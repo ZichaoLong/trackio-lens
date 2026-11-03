@@ -66,7 +66,7 @@
         {#if user.role === "viewer" && selected === user.user_id}
           <form onsubmit={event => {event.preventDefault(); change({action: "reset-password", user_id: user.user_id, password: resetPassword});}}>
             <h4>{$t("Reset password for {username}", {username: user.username})}</h4>
-            <label>{$t("New temporary password")}<input type="password" bind:value={resetPassword} autocomplete="new-password" required minlength="14" maxlength="256" /></label>
+            <label>{$t("New temporary password")}<input type="password" bind:value={resetPassword} autocomplete="new-password" required /></label>
             <div class="user-actions">
               <button disabled={busy}>{$t("Reset viewer password")}</button>
               <button type="button" disabled={busy} onclick={() => {selected = ""; resetPassword = "";}}>{$t("Cancel")}</button>
@@ -79,7 +79,7 @@
   <form onsubmit={event => {event.preventDefault(); change({action: "create", username, password});}}>
     <h4>{$t("Create viewer")}</h4>
     <label>{$t("New username")}<input bind:value={username} autocomplete="off" required maxlength="80" /></label>
-    <label>{$t("Temporary password")}<input type="password" bind:value={password} autocomplete="new-password" required minlength="14" maxlength="256" /></label>
+    <label>{$t("Temporary password")}<input type="password" bind:value={password} autocomplete="new-password" required /></label>
     <button disabled={busy}>{$t("Create viewer")}</button>
   </form>
 </section>

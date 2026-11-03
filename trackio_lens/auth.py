@@ -34,7 +34,7 @@ def password_hash(password: str, salt: str) -> str:
     ).hex()
 
 
-def validate_account(username, password, *, administrator=False):
+def validate_account(username, password):
     if (
         not isinstance(username, str)
         or not username.strip()
@@ -44,8 +44,6 @@ def validate_account(username, password, *, administrator=False):
         raise ValueError("Username must contain between 1 and 80 characters")
     if not isinstance(password, str) or not password:
         raise ValueError("Enter a password")
-    if not administrator and not 14 <= len(password) <= 256:
-        raise ValueError("Use a password or passphrase of 14 to 256 characters")
 
 
 def initialize(
@@ -58,7 +56,7 @@ def initialize(
         raise ValueError("Credentials already exist; use reset-password to rotate")
     bootstrap = password is None
     password = secrets.token_urlsafe(24) if password is None else password
-    validate_account(username, password, administrator=True)
+    validate_account(username, password)
     token, salt = secrets.token_urlsafe(32), secrets.token_hex(16)
     values = {
         "credentials.json": {
@@ -220,7 +218,7 @@ class Auth:
                 # Validate username without replacing the existing password hash.
                 validate_account(username, "unused-validation-placeholder")
             else:
-                validate_account(username, password, administrator=user_id == "owner")
+                validate_account(username, password)
             if user.get("needs_setup") and current_password is not None:
                 if self.matches(user, password):
                     raise ValueError(

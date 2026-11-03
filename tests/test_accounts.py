@@ -79,8 +79,8 @@ def test_administrator_can_change_and_authenticate_with_any_password_length(
         create_viewer(admin, csrf, owner)
 
 
-@pytest.mark.parametrize("password", ["p", "密码" * 150], ids=["short", "long"])
-def test_viewer_password_policy_applies_to_create_reset_and_own_change(
+@pytest.mark.parametrize("password", ["", 123], ids=["empty", "non-string"])
+def test_viewer_password_is_required_for_create_reset_and_own_change(
     instance, password
 ):
     app, owner = instance
@@ -126,6 +126,78 @@ def test_viewer_password_policy_applies_to_create_reset_and_own_change(
             ).status_code
             == 400
         )
+
+
+@pytest.mark.parametrize("password", ["p", "密码" * 150], ids=["short", "long"])
+def test_viewer_create_setup_reset_and_own_change_accept_any_password_length(
+    instance, password
+):
+    app, owner = instance
+    with TestClient(app) as admin, TestClient(app) as viewer:
+        admin_csrf = login(admin, owner)
+        response = admin.post(
+            "/__lens/users",
+            headers=admin_csrf,
+            json={
+                "action": "create",
+                "username": "reader",
+                "password": password,
+                "current_password": owner["password"],
+                "role": "admin",
+            },
+        )
+        assert response.status_code == 200
+        user = response.json()["user"]
+        assert user["role"] == "viewer"
+        csrf = login(viewer, {"username": "reader", "password": password})
+        assert viewer.post("/api/get_all_projects", headers=csrf).status_code == 403
+        response = viewer.post(
+            "/__lens/account",
+            headers=csrf,
+            json={
+                "current_password": password,
+                "password": password + "!",
+                "role": "admin",
+            },
+        )
+        assert response.status_code == 200
+        assert (
+            response.json()["role"] == "viewer" and not response.json()["needs_setup"]
+        )
+        response = viewer.post(
+            "/__lens/account",
+            headers={"X-Trackio-Lens-CSRF": response.json()["csrf"]},
+            json={"current_password": password + "!", "password": password},
+        )
+        assert response.status_code == 200 and not response.json()["needs_setup"]
+        old_cookie = viewer.cookies.get(COOKIE)
+        assert (
+            admin.post(
+                "/__lens/users",
+                headers=admin_csrf,
+                json={
+                    "action": "reset-password",
+                    "user_id": user["user_id"],
+                    "password": password + "?",
+                    "current_password": owner["password"],
+                },
+            ).status_code
+            == 200
+        )
+        assert not app.auth.session(old_cookie)
+        csrf = login(viewer, {"username": "reader", "password": password + "?"})
+        assert viewer.get("/__lens/session").json()["needs_setup"]
+        response = viewer.post(
+            "/__lens/account",
+            headers=csrf,
+            json={"current_password": password + "?", "password": password},
+        )
+        assert response.status_code == 200 and not response.json()["needs_setup"]
+        viewer.cookies.clear()
+        csrf = login(viewer, {"username": "reader", "password": password})
+        assert viewer.post("/api/get_all_projects", headers=csrf).status_code == 200
+        assert viewer.get("/__lens/users").status_code == 403
+        assert app.auth.check_password(owner["username"], owner["password"])
 
 
 def test_bootstrap_cannot_read_or_manage_until_personal_setup(instance):

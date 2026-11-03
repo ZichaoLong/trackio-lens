@@ -364,29 +364,27 @@ def check_accounts(browser, base, owner, state, output):
         expect(account.get_by_role("status")).to_contain_text("Account saved")
         owner["username"] = renamed
         username = "reader-" + str(width)
+        viewer_temporary = "v" if width == 1440 else "初始" * 150
+        viewer_personal = "x" if width == 1440 else "个人" * 150
+        viewer_reset = "r" if width == 1440 else "重置" * 150
         users.get_by_label("Administrator current password").fill(owner["password"])
         users.get_by_label("New username", exact=True).fill(username)
-        users.get_by_label("Temporary password", exact=True).fill(
-            "synthetic viewer temporary password"
-        )
+        temporary_field = users.get_by_label("Temporary password", exact=True)
+        assert temporary_field.get_attribute("minlength") is None
+        assert temporary_field.get_attribute("maxlength") is None
+        temporary_field.fill(viewer_temporary)
         users.get_by_role("button", name="Create viewer", exact=True).click()
         expect(users.get_by_role("status")).to_contain_text("Account saved")
         view.goto(base + "/files?project=lens-demo")
-        sign_in(view, username, "synthetic viewer temporary password")
+        sign_in(view, username, viewer_temporary)
         expect(view.locator(".setup")).to_be_visible()
         assert view.get_by_label("Username", exact=True).evaluate("e => e.readOnly")
         viewer_password = view.get_by_label("New password or passphrase", exact=True)
-        assert viewer_password.get_attribute("minlength") == "14"
-        assert viewer_password.get_attribute("maxlength") == "256"
-        view.get_by_label("Current password", exact=True).fill(
-            "synthetic viewer temporary password"
-        )
-        view.get_by_label("New password or passphrase", exact=True).fill(
-            "synthetic viewer personal password"
-        )
-        view.get_by_label("Repeat new password", exact=True).fill(
-            "synthetic viewer personal password"
-        )
+        assert viewer_password.get_attribute("minlength") is None
+        assert viewer_password.get_attribute("maxlength") is None
+        view.get_by_label("Current password", exact=True).fill(viewer_temporary)
+        viewer_password.fill(viewer_personal)
+        view.get_by_label("Repeat new password", exact=True).fill(viewer_personal)
         view.screenshot(path=str(output / f"{width}-viewer-first-setup.png"))
         view.get_by_role("button", name="Save account", exact=True).click()
         expect(view.locator(".files-page")).to_be_visible()
@@ -451,14 +449,15 @@ def check_accounts(browser, base, owner, state, output):
         users.get_by_label("Administrator current password").fill(owner["password"])
         row.get_by_role("button", name="Reset password", exact=True).click()
         expect(row).to_contain_text("Reset password for " + username)
-        row.get_by_label("New temporary password").fill(
-            "synthetic reset temporary password"
-        )
+        reset_field = row.get_by_label("New temporary password")
+        assert reset_field.get_attribute("minlength") is None
+        assert reset_field.get_attribute("maxlength") is None
+        reset_field.fill(viewer_reset)
         row.get_by_role("button", name="Reset viewer password", exact=True).click()
         expect(users.get_by_role("status")).to_contain_text("Account saved")
         view.reload()
         expect(view.get_by_role("button", name="Sign in", exact=True)).to_be_visible()
-        sign_in(view, username, "synthetic reset temporary password")
+        sign_in(view, username, viewer_reset)
         expect(view.locator(".setup")).to_be_visible()
         assert (
             users.locator("li")
@@ -489,7 +488,7 @@ def check_accounts(browser, base, owner, state, output):
         assert reader.request.get(base + "/__lens/session").status == 401
         view.reload()
         expect(view.get_by_role("button", name="Sign in", exact=True)).to_be_visible()
-        sign_in(view, username, "synthetic reset temporary password")
+        sign_in(view, username, viewer_reset)
         expect(view.locator('[role="alert"]')).to_contain_text(
             "Invalid username or password"
         )
