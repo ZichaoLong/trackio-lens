@@ -11,8 +11,10 @@ import json
 import os
 import shutil
 import socket
+import sqlite3
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,8 +24,8 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from backup import backup  # noqa: E402
 
-from trackio_lens.auth import COOKIE, Auth  # noqa: E402
-from trackio_lens.config import Config, private_path  # noqa: E402
+from trackio_lens.auth import COOKIE, TOKEN_HEADER  # noqa: E402
+from trackio_lens.config import private_path  # noqa: E402
 from trackio_lens.upstream import read_build  # noqa: E402
 
 
@@ -72,9 +74,12 @@ def probe(url, manifest, session, *, timeout=40, process=None):
             ).status_code
             == 401
         )
-        token, csrf, _ = session
-        client.cookies.set(COOKIE, token)
-        client.headers["X-Trackio-Lens-CSRF"] = csrf
+        if isinstance(session, dict):
+            client.headers[TOKEN_HEADER] = session["api_token"]
+        else:
+            token, csrf, _ = session
+            client.cookies.set(COOKIE, token)
+            client.headers["X-Trackio-Lens-CSRF"] = csrf
         identity = client.get("/__lens/build").json()
         assert identity["source_commit"] == manifest["source_commit"], (
             "Service loaded a different release"
@@ -119,7 +124,8 @@ def probe(url, manifest, session, *, timeout=40, process=None):
             "health": True,
             "anonymous_denied": True,
             "wrong_token_denied": True,
-            "session_valid": True,
+            "session_valid": not isinstance(session, dict),
+            "program_read_valid": isinstance(session, dict),
             "authenticated_data": True,
             "frontend_asset_hash": True,
             "source_commit": identity["source_commit"],
@@ -134,8 +140,33 @@ def check_candidate(candidate, instance, data_copy, log, session):
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
+    # Preflight must not migrate or mutate live account state. Share only the
+    # private verifier token; copied browser accounts are unreachable externally.
+    temporary_auth = tempfile.TemporaryDirectory(prefix="auth-", dir=data_copy.parent)
+    auth_copy = Path(temporary_auth.name)
+    state = Path(instance["state_dir"])
+    for name in (
+        "credentials.json",
+        "initial-access.json",
+        "api-access.json",
+        "write-token",
+    ):
+        if (state / name).exists():
+            private_path(state / name)
+            shutil.copy2(state / name, auth_copy / name)
+    # SQLite online backup includes WAL pages without touching live sessions.
+    if (state / "sessions.sqlite3").exists():
+        with (
+            sqlite3.connect(
+                f"file:{state / 'sessions.sqlite3'}?mode=ro", uri=True
+            ) as src,
+            sqlite3.connect(auth_copy / "sessions.sqlite3") as dst,
+        ):
+            src.backup(dst)
+        (auth_copy / "sessions.sqlite3").chmod(0o600)
     config = {
         **instance,
+        "state_dir": str(auth_copy),
         "host": "127.0.0.1",
         "port": port,
         "data_dir": str(data_copy),
@@ -160,6 +191,7 @@ def check_candidate(candidate, instance, data_copy, log, session):
         except subprocess.TimeoutExpired:
             process.kill()  # Only the child we just created, never a port owner.
             process.wait()
+        temporary_auth.cleanup()
 
 
 def systemctl(*args):
@@ -290,14 +322,8 @@ def deploy(args, progress=lambda phase, **details: None):
     state = Path(instance["state_dir"])
     data = Path(instance["data_dir"])
     private_path(data, directory=True)
-    auth = Auth(
-        state,
-        instance.get(
-            "session_ttl_seconds",
-            Config.__dataclass_fields__["session_ttl_seconds"].default,
-        ),
-    )
-    session = auth.create_session()
+    private_path(state / "api-access.json")
+    session = json.loads((state / "api-access.json").read_text())
     previous = (root / "current").resolve() if (root / "current").is_symlink() else None
     source = Path(
         getattr(args, "source", None) or Path(__file__).resolve().parents[1]
@@ -424,7 +450,7 @@ def deploy(args, progress=lambda phase, **details: None):
         print(json.dumps(result))
         return result
     finally:
-        auth.revoke(session[0])
+        session.clear()
 
 
 def publish(args, progress=lambda phase, **details: None):

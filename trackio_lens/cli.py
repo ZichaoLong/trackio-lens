@@ -1,13 +1,15 @@
 """Public local management entry point; credentials never appear in argv."""
 
-import argparse
 import getpass
 import json
 import os
 import shlex
+import subprocess
+import sys
 from pathlib import Path
 
 from .auth import Auth, initialize
+from .cli_text import COMMANDS, Parser, choose, configure, tr
 from .config import Config, private_path
 from .management import (
     default_config,
@@ -19,18 +21,23 @@ from .management import (
 
 
 def ask_password():
-    value = getpass.getpass("New password/passphrase (14–256 characters): ")
-    if value != getpass.getpass("Repeat password: "):
+    value = getpass.getpass(tr("New password/passphrase (14–256 characters): "))
+    if value != getpass.getpass(tr("Repeat password: ")):
         raise ValueError("Passwords differ")
     return value
 
 
-def main():
-    os.umask(0o077)
-    parser = argparse.ArgumentParser(
-        description="Trackio Lens installation and instance management"
-    )
+def build_parser():
+    parser = Parser(description="Trackio Lens installation and instance management")
     commands = parser.add_subparsers(dest="command", required=True)
+    original_add = commands.add_parser
+
+    def add_command(name, **kwargs):
+        kwargs["help"] = choose(*COMMANDS[name])
+        kwargs["description"] = kwargs["help"]
+        return original_add(name, **kwargs)
+
+    commands.add_parser = add_command
     config_default = Path(os.environ.get("TRACKIO_LENS_CONFIG", default_config()))
     for name in ("init", "revoke-sessions", "reset-password", "rotate-api-token"):
         command = commands.add_parser(name)
@@ -105,7 +112,39 @@ def main():
     api.add_argument("--api", required=True)
     api.add_argument("--params-file", type=Path)
     api.add_argument("--write-token-file", type=Path)
-    args = parser.parse_args()
+    completion = commands.add_parser("completion")
+    completion.add_argument("kind", choices=("bash", "zsh", "fish", "install"))
+    completion.add_argument("--shell", choices=("bash", "zsh", "fish"))
+    completion.add_argument("--config", type=Path, default=config_default)
+    writer = commands.add_parser("check-writer")
+    writer.add_argument("--config", type=Path, default=config_default)
+    writer.add_argument("--python", type=Path, required=True)
+    writer.add_argument("--force", action="store_true")
+    registration = writer.add_mutually_exclusive_group()
+    registration.add_argument(
+        "--register",
+        action="store_true",
+        help=choose(
+            "Register this writer for upgrades", "登记此记录环境，供后端升级检查"
+        ),
+    )
+    registration.add_argument(
+        "--unregister",
+        action="store_true",
+        help=choose("Remove this writer registration", "移除此记录环境的登记"),
+    )
+    writer.add_argument(
+        "--sample",
+        type=Path,
+        help=choose(
+            "Project sample script accepting write/verify",
+            "接受 write/verify 参数的项目样例脚本",
+        ),
+    )
+    return parser
+
+
+def execute(args):
     if args.command in {
         "init",
         "revoke-sessions",
@@ -122,11 +161,19 @@ def main():
                 state, args.username, ask_password() if args.set_password else None
             )
             print(
-                f"Account initialized. Private program credential: {state / 'api-access.json'}"
+                choose(
+                    "Account initialized. Private program credential: ",
+                    "账户已初始化，私有程序凭据：",
+                )
+                + str(state / "api-access.json")
             )
             if not args.set_password:
                 print(
-                    f"Initial sign-in credentials: {state / 'initial-access.json'}; choose your own password in Settings."
+                    choose(
+                        "Initial sign-in credentials (choose your own password in Settings): ",
+                        "初始登录凭据（请在设置中选择个人密码）：",
+                    )
+                    + str(state / "initial-access.json")
                 )
             return
         auth = Auth(state, 1)
@@ -135,16 +182,22 @@ def main():
                 args.username or auth.account()["username"], ask_password()
             )
             print(
-                "Password changed. All browser sessions revoked. Program token retained."
+                tr(
+                    "Password changed. All browser sessions revoked. Program token retained."
+                )
             )
         elif args.command == "rotate-api-token":
             auth.rotate_api_token()
             print(
-                f"Program token rotated. Read it locally from {state / 'api-access.json'}"
+                choose(
+                    "Program token rotated. Read it locally from ",
+                    "程序 token 已轮换，请在本机读取：",
+                )
+                + str(state / "api-access.json")
             )
         else:
             auth.revoke()
-            print("All browser sessions revoked.")
+            print(tr("All browser sessions revoked."))
     elif args.command in {"start", "stop", "restart", "enable", "disable"}:
         service_action(args.config, args.command)
         print(json.dumps(service_state(args.config), indent=2, ensure_ascii=False))
@@ -177,6 +230,47 @@ def main():
         else:
             result = updates.status(args.config)
         print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "completion":
+        from .completion import install, script
+        from .management import read_management
+
+        if args.kind == "install":
+            management = read_management(args.config)
+            result = install(
+                management.get("command", str(Path.home() / ".local/bin/trackio-lens")),
+                args.shell,
+            )
+            print(json.dumps(result, ensure_ascii=False))
+            print(
+                choose(
+                    "Completion installed; open a new shell to activate.",
+                    "补全已安装，打开新终端后生效。",
+                ),
+                file=sys.stderr,
+            )
+        else:
+            print(script(args.kind), end="")
+    elif args.command == "check-writer":
+        from .writers import check
+
+        result = check(
+            args.config,
+            args.python,
+            args.force,
+            args.register,
+            args.unregister,
+            args.sample,
+        )
+        print(json.dumps(result, ensure_ascii=False))
+        if result["status"] == "failed":
+            print(
+                choose(
+                    "Writer check failed; inspect the private report.",
+                    "记录环境检查未通过，请查看私有报告。",
+                ),
+                file=sys.stderr,
+            )
+            raise SystemExit(2)
     elif args.command == "record":
         from .recorder import record
 
@@ -223,6 +317,30 @@ def main():
             ssl_certfile=config.ssl_certfile,
             ssl_keyfile=config.ssl_keyfile,
         )
+
+
+def main(argv=None):
+    os.umask(0o077)
+    argv = list(sys.argv[1:] if argv is None else argv)
+    completing = bool(argv and argv[0] == "__complete")
+    configure([] if completing else argv)
+    parser = build_parser()
+    if completing:
+        from .completion import candidates
+
+        print("\n".join(candidates(parser, argv[1:])))
+        return
+    args = parser.parse_args(argv)
+    try:
+        execute(args)
+    except (ValueError, OSError, subprocess.SubprocessError) as error:
+        print(
+            choose("Operation failed: ", "操作失败：") + tr(str(error)), file=sys.stderr
+        )
+        raise SystemExit(2) from None
+    except (KeyboardInterrupt, EOFError):
+        print(choose("Cancelled.", "已取消。"), file=sys.stderr)
+        raise SystemExit(130) from None
 
 
 if __name__ == "__main__":

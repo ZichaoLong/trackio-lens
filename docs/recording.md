@@ -58,3 +58,19 @@ trackio-lens record \
 ## 训练 skill 接入
 
 已更新的 `run-ml-experiments` 将 Trackio 设为明确授权的可选适配器，Python 模板默认 `off`，通过实例命令发现目的地，并支持认证后的只读 HTTP 检查。可公开的差异保存在 [集成补丁](../integrations/run-ml-experiments.patch)；安装 Lens 不会自动安装或覆盖用户 skills。补丁面向已有 skill，应用前应先用 `git apply --check` 或等价工具检查版本差异。
+
+## 明确接入与轻量检查
+
+只有用户明确要求接入 Lens 时才使用本节；否则保留项目已有 SDK、记录格式和目的地，不增加 Lens 检查或隐式迁移。已有会话授权不需要逐个运行重复询问。
+
+- 已有独立 Trackio 项目可继续独立记录，迁移另行处理。
+- 简单标量及 C++ 可复用 JSONL 和 `trackio-lens record`，由 Lens 环境承担 SDK；不要求既有项目重写记录系统。
+- 使用项目 SDK 直接写 Lens 目录前，运行 `trackio-lens check-writer --python /project/venv/bin/python`。这仅创建私有临时合成存储，不读写正式实验目录，也不安装包或启动查看服务。
+
+检查覆盖导入、新建、配置、标量、图片、报告、文件、产物、迁移后严格续写、新建和双方读取。它是接入检查，不替代后端升级时的历史数据副本检查。结果与依赖版本、Python 环境、查看端依赖及检查代码对应；组合相同可复用缓存，`--force` 重跑。成功返回 `passed`，失败返回 `failed` 和退出码 2；日志与结果位于实例私有 `writer-checks` 目录。
+
+通过后可加 `--register`，将此解释器显式登记为后端升级检查对象；不用时用 `--unregister` 移除。部署者只检查显式登记的环境和上一发布 SDK，不扫描所有训练任务。环境移动或删除前应取消登记。解释器登记不授予其系统权限，也不升级该环境。
+
+特殊记录功能可复制 [最小项目样例](../examples/python/writer_sample.py)，实现 `write` 和 `verify` 两阶段，再传 `--sample /project/tests/lens_sample.py`：前者由训练解释器运行，后者由 Lens 解释器读回并断言。样例必须使用工具提供的 `TRACKIO_DIR`，不能硬编码正式目的地；它是用户选择执行的本机代码，不是沙箱。样例文件哈希进入缓存身份，样例导入的项目代码改变后应使用 `--force`。登记只把解释器加入通用升级矩阵，自定义功能仍由项目维护验证。
+
+公共训练 skill 负责如何选择记录方式、调用检查和保留原始结果；本仓库负责命令、场景、缓存及升级检查。可选展示失败时应单独报告，遵循项目的 `required` / `best-effort` 策略，不让研究任务无限扩展为追踪工具开发。

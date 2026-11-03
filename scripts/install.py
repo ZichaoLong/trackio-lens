@@ -16,6 +16,8 @@ SOURCE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE))
 
 from trackio_lens.auth import Auth, initialize  # noqa: E402
+from trackio_lens.cli_text import Parser, choose, configure, tr  # noqa: E402
+from trackio_lens.completion import install as install_completion  # noqa: E402
 from trackio_lens.config import private_json, private_path  # noqa: E402
 from trackio_lens.management import install_command, register_install  # noqa: E402
 
@@ -78,7 +80,8 @@ def migrate_service(root, config, old, new, bootstrap):
 
 def main():
     os.umask(0o077)
-    parser = argparse.ArgumentParser(description=__doc__)
+    configure()
+    parser = Parser(description="Trackio Lens installation and instance management")
     parser.add_argument(
         "--python",
         default=sys.executable,
@@ -168,7 +171,7 @@ def main():
             else:
                 from trackio_lens.cli import ask_password
 
-                username = input("Account name [admin]: ").strip() or "admin"
+                username = input(tr("Account name: ")).strip()
                 initialize(config.parent, username, ask_password())
         private_json(
             config,
@@ -224,6 +227,20 @@ def main():
         migrate_service(root, config, args.migrate_service, args.service, boot_python)
     register_install(config, root, args.service, python, Path(node).parent)
     install_command(root, config, args.command)
+    management_path = (
+        Path(json.loads(config.read_text())["state_dir"]) / "management.json"
+    )
+    management = json.loads(management_path.read_text())
+    management["command"] = str(args.command.expanduser().absolute())
+    private_json(management_path, management)
+    completion = install_completion(args.command.expanduser().absolute())
+    print(
+        choose(
+            "Completion installed (open a new shell): ",
+            "补全已安装（打开新终端后生效）：",
+        )
+        + completion["completion_file"]
+    )
     if args.enable is True or (fresh and args.enable is None):
         run(["systemctl", "--user", "enable", args.service])
     elif args.enable is False:
@@ -232,18 +249,27 @@ def main():
     instance = json.loads(config.read_text())
     Auth(Path(instance["state_dir"]), 1)
     print(
-        f"Installed command: {args.command}\nService: {args.service}\nConfiguration: {config}"
+        choose(
+            f"Installed command: {args.command}\nService: {args.service}\nConfiguration: {config}",
+            f"管理命令：{args.command}\n服务：{args.service}\n配置：{config}",
+        )
     )
     if args.command.parent.as_posix() not in os.environ.get("PATH", "").split(
         os.pathsep
     ):
         print(
-            f"Use the absolute command path, or add {args.command.parent} to your shell PATH."
+            choose(
+                f"This installer process has no {args.command.parent} in PATH. Use the absolute path if your interactive shell also lacks it.",
+                f"安装器进程的 PATH 中没有 {args.command.parent}；若你的交互 Shell 也缺少它，可使用命令绝对路径。",
+            )
         )
     initial = Path(instance["state_dir"]) / "initial-access.json"
     if initial.exists():
         print(
-            f"Read initial sign-in credentials privately from {initial}; choose your own password in Settings."
+            choose(
+                f"Read initial sign-in credentials privately from {initial}; choose your own password in Settings.",
+                f"请在本机私密读取初始凭据：{initial}，并在首次登录后设置个人密码。",
+            )
         )
 
 

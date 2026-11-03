@@ -87,3 +87,9 @@ CLI 可用 `trackio-lens api --url URL --credentials /private/api-access.json --
 训练接入、独立 C++ 记录器和 SDK 矩阵的操作见 [记录指南](recording.md)。后端改变时发布器自动检查上一发布的 SDK，加上私有 `management.json` 中的 `writer_pythons` 解释器列表；首次采用非空存储时安装器支持重复 `--writer-python PATH`。这些解释器只在数据副本中运行，不升级它们。
 
 设置页和 CLI 现在可以检查固定仓库 main 并更新到明确提交，操作和恢复流程见 [应用更新](updates.md)。管理命令路径、服务名称和发布根目录由安装信息记录，更新任务独立于查看服务。
+
+## 命令语言与补全
+
+`trackio-lens --help` 默认中文；用 `--lang en`（可放在子命令后）或 `TRACKIO_LENS_LANG=en` 切换英文。命令、参数、JSON 字段和机器状态值不翻译。`status` 等命令保持 JSON 输出，提示写到 stderr。SDK、systemd 和构建工具自身的日志保留原文。
+
+安装器会为当前登录 Shell 安装补全；也可执行 `trackio-lens completion install --shell bash`，或选择 `zsh` / `fish`。打开新终端后生效。`completion bash` 等只输出脚本，适合自管 Shell 配置。补全从当前版本解析器获得命令和参数，不读凭据、不调用服务或网络；升级后自动跟随命令定义。安装保留已有 Shell 配置和 PATH；安装器进程的 PATH 不代表 SSH 交互终端。

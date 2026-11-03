@@ -85,3 +85,34 @@ def test_systemd_accepts_generated_unit(tmp_path):
         check=True,
         capture_output=True,
     )
+
+
+def test_candidate_cannot_migrate_live_credentials(tmp_path, monkeypatch):
+    import json
+
+    state, data, candidate = [
+        tmp_path / name for name in ("state", "copy", "candidate")
+    ]
+    for path in (state, data, candidate):
+        path.mkdir(mode=0o700)
+    credential = state / "credentials.json"
+    credential.write_text('{"username":"original"}')
+    credential.chmod(0o600)
+    monkeypatch.setattr(release, "read_build", lambda _: {})
+    copied = []
+
+    def process(argv, **kwargs):
+        config = json.loads(Path(argv[-1]).read_text())
+        isolated = Path(config["state_dir"])
+        copied.append(isolated)
+        assert isolated != state
+        (isolated / "credentials.json").write_text('{"username":"migrated"}')
+        return Mock()
+
+    monkeypatch.setattr(release.subprocess, "Popen", process)
+    monkeypatch.setattr(release, "probe", lambda *a, **kw: {"checked": True})
+    assert release.check_candidate(
+        candidate, {"state_dir": str(state)}, data, None, None
+    ) == {"checked": True}
+    assert json.loads(credential.read_text())["username"] == "original"
+    assert not copied[0].exists()
