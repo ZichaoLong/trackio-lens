@@ -34,7 +34,7 @@ def password_hash(password: str, salt: str) -> str:
     ).hex()
 
 
-def validate_account(username, password):
+def validate_account(username, password, *, administrator=False):
     if (
         not isinstance(username, str)
         or not username.strip()
@@ -42,7 +42,9 @@ def validate_account(username, password):
         or any(ord(c) < 32 or ord(c) == 127 for c in username)
     ):
         raise ValueError("Username must contain between 1 and 80 characters")
-    if not isinstance(password, str) or not 14 <= len(password) <= 256:
+    if not isinstance(password, str) or not password:
+        raise ValueError("Enter a password")
+    if not administrator and not 14 <= len(password) <= 256:
         raise ValueError("Use a password or passphrase of 14 to 256 characters")
 
 
@@ -56,7 +58,7 @@ def initialize(
         raise ValueError("Credentials already exist; use reset-password to rotate")
     bootstrap = password is None
     password = secrets.token_urlsafe(24) if password is None else password
-    validate_account(username, password)
+    validate_account(username, password, administrator=True)
     token, salt = secrets.token_urlsafe(32), secrets.token_hex(16)
     values = {
         "credentials.json": {
@@ -164,12 +166,8 @@ class Auth:
 
     @staticmethod
     def matches(user, password):
-        return (
-            isinstance(password, str)
-            and len(password) <= 256
-            and hmac.compare_digest(
-                password_hash(password, user["salt"]), user["password_hash"]
-            )
+        return isinstance(password, str) and hmac.compare_digest(
+            password_hash(password, user["salt"]), user["password_hash"]
         )
 
     def login(self, username, password):
@@ -215,14 +213,14 @@ class Auth:
                     "Only the administrator can change their username"
                 )
             if password is not None and not isinstance(password, str):
-                raise ValueError("Use a password or passphrase of 14 to 256 characters")
+                raise ValueError("Enter a password")
             if not password:
                 if user.get("needs_setup") or user_id != "owner":
                     raise ValueError("Set a new personal password before continuing")
                 # Validate username without replacing the existing password hash.
                 validate_account(username, "unused-validation-placeholder")
             else:
-                validate_account(username, password)
+                validate_account(username, password, administrator=user_id == "owner")
             if user.get("needs_setup") and current_password is not None:
                 if self.matches(user, password):
                     raise ValueError(

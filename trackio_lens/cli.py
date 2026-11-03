@@ -21,7 +21,9 @@ from .management import (
 
 
 def ask_password():
-    value = getpass.getpass(tr("New password/passphrase (14–256 characters): "))
+    value = getpass.getpass(tr("New administrator password/passphrase: "))
+    if not value:
+        raise ValueError("Enter a password")
     if value != getpass.getpass(tr("Repeat password: ")):
         raise ValueError("Passwords differ")
     return value

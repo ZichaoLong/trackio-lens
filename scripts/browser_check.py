@@ -49,16 +49,10 @@ def check(base, credentials_path, output, strict=False):
                 page.get_by_label("Current password", exact=True).fill(
                     credentials["password"]
                 )
-                page.get_by_label("New password or passphrase", exact=True).fill(
-                    "synthetic first personal password"
-                )
-                page.get_by_label("Repeat new password", exact=True).fill(
-                    "synthetic first personal password"
-                )
+                page.get_by_label("New password or passphrase", exact=True).fill("p")
+                page.get_by_label("Repeat new password", exact=True).fill("p")
                 page.get_by_role("button", name="Save account", exact=True).click()
-                credentials.update(
-                    username="demo-owner", password="synthetic first personal password"
-                )
+                credentials.update(username="demo-owner", password="p")
             expect(page.locator(".files-page")).to_be_visible()
             assert page.url.endswith("/files?project=lens-demo")
             for route, selector in (
@@ -329,6 +323,7 @@ def check_accounts(browser, base, owner, state, output):
     """Real browser roles, bootstrap, scoped revocation and hostile API requests."""
 
     def sign_in(page, username, password):
+        expect(page.get_by_role("button", name="Sign in", exact=True)).to_be_visible()
         page.get_by_label("Username", exact=True).fill(username)
         page.get_by_label("Password", exact=True).fill(password)
         page.get_by_role("button", name="Sign in", exact=True).click()
@@ -345,8 +340,23 @@ def check_accounts(browser, base, owner, state, output):
         sign_in(page, owner["username"], owner["password"])
         users = page.locator(".users")
         expect(users).to_be_visible()
-        # Only rename: omit the new password and prove the login password survives.
         account = page.locator(".account")
+        new_password = account.get_by_label("New password or passphrase", exact=True)
+        assert new_password.get_attribute("minlength") is None
+        assert new_password.get_attribute("maxlength") is None
+        password = "p" if width == 1440 else "密码" * 150
+        account.get_by_label("Current password", exact=True).fill(owner["password"])
+        new_password.fill(password)
+        account.get_by_label("Repeat new password", exact=True).fill(password)
+        account.get_by_role("button", name="Save account", exact=True).click()
+        expect(account.get_by_role("status")).to_contain_text("Account saved")
+        owner["password"] = password
+        page.get_by_role("button", name="Sign out", exact=True).click()
+        sign_in(page, owner["username"], password)
+        expect(page.get_by_role("button", name="Sign out", exact=True)).to_be_visible()
+        page.goto(base + "/settings")
+        expect(users).to_be_visible()
+        # Only rename: omit the new password and prove the login password survives.
         renamed = "owner-" + str(width)
         account.get_by_label("Username", exact=True).fill(renamed)
         account.get_by_label("Current password", exact=True).fill(owner["password"])
@@ -365,6 +375,9 @@ def check_accounts(browser, base, owner, state, output):
         sign_in(view, username, "synthetic viewer temporary password")
         expect(view.locator(".setup")).to_be_visible()
         assert view.get_by_label("Username", exact=True).evaluate("e => e.readOnly")
+        viewer_password = view.get_by_label("New password or passphrase", exact=True)
+        assert viewer_password.get_attribute("minlength") == "14"
+        assert viewer_password.get_attribute("maxlength") == "256"
         view.get_by_label("Current password", exact=True).fill(
             "synthetic viewer temporary password"
         )

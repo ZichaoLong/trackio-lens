@@ -209,7 +209,9 @@ def test_personal_account_revokes_other_devices_but_keeps_program_token(instance
         )
         assert (
             client.post(
-                "/__lens/account", json={**values, "password": "short"}, headers=headers
+                "/__lens/account",
+                json={**values, "password": ["invalid"]},
+                headers=headers,
             ).status_code
             == 400
         )

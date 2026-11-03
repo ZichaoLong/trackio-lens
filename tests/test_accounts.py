@@ -5,7 +5,7 @@ import pytest
 from starlette.testclient import TestClient
 from test_auth import login
 
-from trackio_lens.auth import COOKIE, Auth, digest
+from trackio_lens.auth import COOKIE, Auth, digest, initialize
 from trackio_lens.config import private_json
 
 
@@ -40,6 +40,92 @@ def setup_viewer(client):
     assert response.status_code == 200
     assert response.json()["role"] == "viewer" and not response.json()["needs_setup"]
     return {"X-Trackio-Lens-CSRF": response.json()["csrf"]}
+
+
+@pytest.mark.parametrize("password", ["p", "密码" * 150], ids=["short", "long"])
+def test_administrator_initialization_has_no_password_length_policy(tmp_path, password):
+    state = tmp_path / "auth"
+    initialize(state, "owner", password)
+    auth = Auth(state, 3600)
+    assert auth.login("owner", password)
+    assert not auth.login("owner", password + "wrong")
+
+
+def test_administrator_password_is_still_required(tmp_path):
+    with pytest.raises(ValueError, match="Enter a password"):
+        initialize(tmp_path / "auth", "owner", "")
+
+
+@pytest.mark.parametrize("password", ["p", "密码" * 150], ids=["short", "long"])
+def test_administrator_can_change_and_authenticate_with_any_password_length(
+    instance, password
+):
+    app, owner = instance
+    with TestClient(app) as admin:
+        csrf = login(admin, owner)
+        old_cookie = admin.cookies.get(COOKIE)
+        response = admin.post(
+            "/__lens/account",
+            headers=csrf,
+            json={"current_password": owner["password"], "password": password},
+        )
+        assert response.status_code == 200
+        assert not app.auth.session(old_cookie)
+        owner = {**owner, "password": password}
+        admin.cookies.clear()
+        csrf = login(admin, owner)
+        assert admin.get("/__lens/session").json()["role"] == "admin"
+        # Management's current-password verification must accept the same value.
+        create_viewer(admin, csrf, owner)
+
+
+@pytest.mark.parametrize("password", ["p", "密码" * 150], ids=["short", "long"])
+def test_viewer_password_policy_applies_to_create_reset_and_own_change(
+    instance, password
+):
+    app, owner = instance
+    with TestClient(app) as admin, TestClient(app) as viewer:
+        csrf = login(admin, owner)
+        assert (
+            admin.post(
+                "/__lens/users",
+                headers=csrf,
+                json={
+                    "action": "create",
+                    "username": "reader",
+                    "password": password,
+                    "current_password": owner["password"],
+                },
+            ).status_code
+            == 400
+        )
+        user = create_viewer(admin, csrf, owner)
+        assert (
+            admin.post(
+                "/__lens/users",
+                headers=csrf,
+                json={
+                    "action": "reset-password",
+                    "user_id": user["user_id"],
+                    "password": password,
+                    "current_password": owner["password"],
+                },
+            ).status_code
+            == 400
+        )
+        csrf = setup_viewer(viewer)
+        assert (
+            viewer.post(
+                "/__lens/account",
+                headers=csrf,
+                json={
+                    "current_password": "personal viewer password",
+                    "password": password,
+                    "role": "admin",
+                },
+            ).status_code
+            == 400
+        )
 
 
 def test_bootstrap_cannot_read_or_manage_until_personal_setup(instance):
@@ -109,7 +195,7 @@ def test_bootstrap_cannot_read_or_manage_until_personal_setup(instance):
             headers=csrf,
             json={
                 "username": "new-owner",
-                "password": "new personal owner password",
+                "password": "p",
                 "current_password": owner["password"],
             },
         )

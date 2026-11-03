@@ -50,9 +50,9 @@
   <form onsubmit={save}>
     <label>{$t("Username")}<input bind:value={username} autocomplete="username" readonly={!administrator} required maxlength="80" /></label>
     <label>{$t("Current password")}<input type="password" bind:value={currentPassword} autocomplete="current-password" required /></label>
-    <label>{$t("New password or passphrase")}<input type="password" bind:value={password} autocomplete="new-password" minlength="14" maxlength="256" required={!administrator || $connection.needsSetup} /></label>
-    <label>{$t("Repeat new password")}<input type="password" bind:value={repeat} autocomplete="new-password" minlength="14" maxlength="256" required={!administrator || $connection.needsSetup} /></label>
-    <p class="hint">{$t("Use 14–256 characters. You can use a memorable phrase or a password manager.")}</p>
+    <label>{$t("New password or passphrase")}<input type="password" bind:value={password} autocomplete="new-password" minlength={administrator ? undefined : 14} maxlength={administrator ? undefined : 256} required={!administrator || $connection.needsSetup} /></label>
+    <label>{$t("Repeat new password")}<input type="password" bind:value={repeat} autocomplete="new-password" minlength={administrator ? undefined : 14} maxlength={administrator ? undefined : 256} required={!administrator || $connection.needsSetup} /></label>
+    <p class="hint">{$t(administrator ? "You can use a memorable phrase or a password manager." : "Use 14–256 characters. You can use a memorable phrase or a password manager.")}</p>
     <div class="actions"><button type="submit" disabled={busy}>{$t("Save account")}</button><button type="button" disabled={busy} onclick={revoke}>{$t("Sign out my devices")}</button></div>
     {#if error}<p class="error" role="alert">{$t(error)}</p>{/if}
     {#if message}<p role="status">{$t(message)}</p>{/if}

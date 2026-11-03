@@ -164,7 +164,7 @@ def test_explicit_bootstrap_and_interactive_admin_initialization(tmp_path):
             "--state-dir",
             str(personal),
         ],
-        input="my-own-name\nsynthetic personal password\nsynthetic personal password\n",
+        input="my-own-name\nshort-pass\nshort-pass\n",
         text=True,
         capture_output=True,
     )
@@ -174,4 +174,24 @@ def test_explicit_bootstrap_and_interactive_admin_initialization(tmp_path):
         json.loads((personal / "credentials.json").read_text())["username"]
         == "my-own-name"
     )
-    assert "synthetic personal password" not in result.stdout + result.stderr
+    assert "short-pass" not in result.stdout + result.stderr
+    from trackio_lens.auth import Auth
+
+    assert Auth(personal, 3600).login("my-own-name", "short-pass")
+    long_password = "synthetic" * 50
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "trackio_lens.cli",
+            "reset-password",
+            "--state-dir",
+            str(personal),
+        ],
+        input=long_password + "\n" + long_password + "\n",
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert long_password not in result.stdout + result.stderr
+    assert Auth(personal, 3600).login("my-own-name", long_password)
