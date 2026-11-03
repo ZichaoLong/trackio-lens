@@ -73,6 +73,13 @@ def main():
     serve = commands.add_parser("serve")
     serve.add_argument("--config", type=Path, default=config_default)
     serve.add_argument("--frontend", type=Path)
+    from .recorder import add_arguments
+
+    recorder = commands.add_parser(
+        "record", help="Import or follow an authorized project JSONL record"
+    )
+    recorder.add_argument("--config", type=Path, default=config_default)
+    add_arguments(recorder)
     api = commands.add_parser(
         "api", help="Call the official HTTP API with private credential files"
     )
@@ -133,6 +140,21 @@ def main():
                 print(f"export {key}={shlex.quote(value)}")
         else:
             print(json.dumps(info, indent=2, ensure_ascii=False))
+    elif args.command == "record":
+        from .recorder import record
+
+        destination = args.data_dir or Path(recording_info(args.config)["data_dir"])
+        result = record(
+            args.events,
+            args.manifest,
+            destination,
+            args.report,
+            args.follow,
+            args.done_file,
+        )
+        print(json.dumps(result, ensure_ascii=False))
+        if result["status"] != "verified":
+            raise SystemExit(2)
     elif args.command == "api":
         from .client import remote_client
 

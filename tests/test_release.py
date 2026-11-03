@@ -55,6 +55,17 @@ def test_first_failure_stays_closed(tmp_path, monkeypatch):
     ]
 
 
+def test_existing_data_requires_declared_writer_before_first_install(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(release, "read_build", lambda _: {"backend_version": "new"})
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "historical.db").touch()
+    with pytest.raises(ValueError, match="requires --writer-python"):
+        release.compatibility_gate(tmp_path / "candidate", None, data, tmp_path, None)
+
+
 def test_systemd_accepts_generated_unit(tmp_path):
     import shutil
     import subprocess

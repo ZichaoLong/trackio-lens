@@ -225,6 +225,53 @@ WantedBy=default.target
 """
 
 
+def compatibility_gate(candidate, previous, data_copy, state, log, writers=()):
+    """Backend changes must exercise declared old SDKs, including the fallback SDK."""
+    target = read_build(candidate / "source/frontend/dist")["backend_version"]
+    old = (
+        read_build(previous / "source/frontend/dist")["backend_version"]
+        if previous
+        else None
+    )
+    if old == target:
+        return {"required": False, "reason": "backend-version-unchanged"}
+    configured = state / "management.json"
+    declared = (
+        json.loads(configured.read_text()).get("writer_pythons", [])
+        if configured.exists()
+        else []
+    )
+    pythons = list(
+        dict.fromkeys([str(previous / "venv/bin/python")] if previous else [])
+    )
+    pythons.extend(str(p) for p in [*declared, *writers] if str(p) not in pythons)
+    if not pythons:
+        # First install with no declared old storage is still validated on a copy.
+        if any(data_copy.glob("*.db")):
+            raise ValueError(
+                "Existing data without a verified previous release requires --writer-python for compatibility validation"
+            )
+        return {"required": False, "reason": "first-install-empty-storage"}
+    reports = []
+    for index, python in enumerate(pythons):
+        output = data_copy.parent / f"writer-check-{index}"
+        run(
+            [
+                str(candidate / "venv/bin/python"),
+                str(candidate / "source/scripts/check_compatibility.py"),
+                "--source",
+                str(data_copy),
+                "--output",
+                str(output),
+                "--old-python",
+                python,
+            ],
+            log=log,
+        )
+        reports.append(json.loads((output / "compatibility.json").read_text()))
+    return {"required": True, "reports": reports}
+
+
 def deploy(args):
     root = args.root.resolve()
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -310,12 +357,23 @@ def deploy(args):
             print("Committed release built:", commit, flush=True)
             copy = root / "validation" / stamp / "data"
             backup(data, copy)
+            compatibility = compatibility_gate(
+                candidate,
+                previous,
+                copy,
+                state,
+                log,
+                getattr(args, "writer_python", []),
+            )
             validation = check_candidate(candidate, instance, copy, log, session)
             if previous:
                 # Test the actual fallback against the candidate-migrated COPY.
                 # A failure here stops deployment before the production DB changes.
                 check_candidate(previous, instance, copy, log, session)
-            private_json(candidate / "validation.json", validation)
+            private_json(
+                candidate / "validation.json",
+                {**validation, "compatibility": compatibility},
+            )
             shutil.rmtree(copy)
         backup_dir = root / "backups" / stamp
         backup(data, backup_dir / "data")
@@ -368,6 +426,12 @@ if __name__ == "__main__":
     parser.add_argument("--service", required=True)
     parser.add_argument(
         "--python", help="Stable Python 3.11+ interpreter for the isolated release"
+    )
+    parser.add_argument(
+        "--writer-python",
+        action="append",
+        default=[],
+        help="Additional isolated SDK interpreter to validate before a backend change",
     )
     args = parser.parse_args()
     if not args.service.endswith(".service") or "/" in args.service:

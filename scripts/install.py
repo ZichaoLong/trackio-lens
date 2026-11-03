@@ -97,6 +97,12 @@ def main():
     parser.add_argument("--port", type=int, default=7860)
     parser.add_argument("--service", default="trackio-lens.service")
     parser.add_argument(
+        "--writer-python",
+        action="append",
+        default=[],
+        help="Existing SDK interpreter to validate when adopting nonempty data",
+    )
+    parser.add_argument(
         "--migrate-service",
         help="Explicitly migrate the previously verified Lens user service",
     )
@@ -207,6 +213,11 @@ def main():
             active_service,
             "--python",
             python,
+            *[
+                item
+                for writer in args.writer_python
+                for item in ("--writer-python", writer)
+            ],
         ]
     )
     if args.migrate_service:

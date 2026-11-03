@@ -30,3 +30,8 @@ jobs:
       - run: |
           .venv/bin/python -m playwright install --with-deps chromium
           .venv/bin/python scripts/check_demo.py --output .local/ci-demo
+      - run: |
+          python -m venv .local/sdk-0.35
+          .local/sdk-0.35/bin/pip install -r tests/fixtures/trackio-0.35.lock
+          .local/sdk-0.35/bin/pip check
+          .venv/bin/python scripts/check_compatibility.py --source .local/ci-demo/data --output .local/compatibility --old-python .local/sdk-0.35/bin/python

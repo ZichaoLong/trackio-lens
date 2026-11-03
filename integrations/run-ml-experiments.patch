@@ -1,0 +1,218 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -89,7 +89,11 @@
+   validator accepts that schema; do not convert existing projects merely to
+   use it. Production code must use project-owned copies, not skill imports.
+ - Read [Trackio](references/trackio.md) only when choosing, configuring,
+-  viewing, or diagnosing it. Keep the local authoritative record first.
++  viewing, or diagnosing it. Trackio recording requires the user’s explicit
++  authorization; availability of Lens or this skill does not enable recording.
++  Keep the local authoritative record first. The starter defaults to `off`.
++  When a local Lens instance is selected, discover its non-secret destination
++  with `trackio-lens recording-info --json` before importing Trackio.
+   `required`, `best-effort`, and `off` are adapter policies, not universal
+   experiment gates. Preserve destination kind, data root/storage mode, and
+   viewer environment when applicable, without credentials or private URLs.
+--- a/assets/python/experiment_tracking.py
++++ b/assets/python/experiment_tracking.py
+@@ -168,7 +168,7 @@
+         project: str,
+         name: str,
+         config: Mapping[str, Any] | None = None,
+-        tracking: str = "best-effort",
++        tracking: str = "off",
+         resume: bool = False,
+         run_id: str | None = None,
+         trackio_project: str | None = None,
+--- a/references/cpp-metrics-bridge.md
++++ b/references/cpp-metrics-bridge.md
+@@ -57,3 +57,21 @@
+ Use `scripts/replay_metrics.py RUN_DIR` to validate a completed local record and create one fresh Trackio run. It never appends automatically to an existing Trackio run, so a retry creates another explicitly identifiable projection rather than risking duplicate observations inside the original. Original step values and event order are replayed, but Trackio's public `log(metrics, step=...)` API does not accept the source timestamp; wall-clock timestamps therefore become replay time. Context fields are retained in the authoritative JSONL but are not automatically converted into Trackio metrics.
+ 
+ Trackio 0.35 does not expose a durable per-event acknowledgement through this logging API. A monotonic source sequence is useful for validation, but does not provide exactly-once ingestion by itself. The bundled replay reports warnings and an uncertain result instead of claiming an acknowledgement or cursor guarantee that the destination did not provide.
++
++## Installed Lens recorder
++
++When the user authorized Trackio recording and Lens is installed, its maintained
++`trackio-lens record` command accepts this schema as `--events metrics.jsonl`
++and a manifest with `run_id`, `project`, `name`, and optional `config`. Use
++`--report NEW_PRIVATE_FILE` to retain one attempt. The command discovers the
++installed local destination; an explicit `--data-dir` chooses another destination.
++The producer remains plain C++17; the recorder uses the Lens installation’s
++isolated Python and official SDK. It needs no C++/Python/Rust ABI bridge or HTTP.
++
++Offline import validates the complete stream first. Optional `--follow` consumes
++complete lines; `--done-file FILE` signals producer termination, not workload
++success. Preserve the producer’s own exit status. Each invocation creates a fresh
++projection; failed attempts are never silently resumed. Check destination readback
++and the result report, retain original timestamps in JSONL, and do not interpret
++progress counters as exactly-once acknowledgements. The installed repository’s
++`docs/recording.md` owns the recorder interface and examples.
+--- a/references/trackio.md
++++ b/references/trackio.md
+@@ -6,7 +6,7 @@
+ Project-owned records remain authoritative through dashboard downtime,
+ topology changes, and Trackio schema evolution.
+ 
+-This reference was checked against Trackio 0.35.0 and its official documentation on 2026-08-21. Trackio is still beta. Inspect the installed version and current official API before relying on version-sensitive server, storage, resume, artifact, or migration behavior.
++The starter adapter was checked against Trackio 0.35.0 on 2026-08-21. Local Lens integration was added on 2026-11-03; its backend and SDK matrix are reported by that installation, not pinned by this skill. Trackio is still beta. Inspect the installed version and current official API before relying on version-sensitive server, storage, resume, artifact, or migration behavior.
+ 
+ The bundled Python recorder, strict local resume, fresh-run replay, SQLite persistence, dashboard HTTP/API loading, and C++-to-JSONL path were exercised with that release. This is evidence for those narrow paths, not a compatibility claim for future versions or remote delivery.
+ 
+@@ -64,15 +64,26 @@
+ 
+ For a self-hosted server, prefer environment configuration such as `TRACKIO_SERVER_URL` and `TRACKIO_WRITE_TOKEN` over embedding a write token in a URL. Never print, commit, or place the token in a run manifest, command line, dashboard link, or Caddy configuration generated by this skill. Hugging Face Space configuration has precedence over a self-hosted server in the checked release; detect conflicting configuration rather than guessing which destination received data.
+ 
+-When launching a dashboard locally:
++For an installed Trackio Lens viewer, use its own command and environment:
+ 
+-- reuse one compatible process per intended Trackio data root rather than starting one process per project;
+-- bind to loopback by default;
+-- record the PID, service unit, or launcher only if the dashboard itself is made durable;
+-- use the project selector or a project-specific URL for navigation;
+-- keep external access, transport, naming, certificates, and reverse-proxy configuration outside this skill.
++- `trackio-lens status` inspects the managed viewer; `start`, `stop`, `restart`,
++  `enable`, and `disable` manage only that instance when service changes are authorized.
++- `trackio-lens recording-info --json` works even while the viewer is stopped.
++  Resolve the command from PATH or the operator’s installed-command locator.
++- After explicit authorization to record, apply the returned `TRACKIO_DIR`
++  and `TRACKIO_STORAGE_MODE` only to this workload, before importing Trackio.
++  Record the resolved destination privately and SDK version in the run record.
++- Keep the training project’s Python and dependency policy. It can use a different
++  SDK version if the writer/reader/storage combination is validated. Do not install
++  Lens into the training environment or start `trackio show` beside an authenticated
++  Lens instance; that can create an anonymous route to the same data.
++- Existing project destinations take precedence. A different path or remote
++  destination is a deliberate migration, not an automatic fallback.
+ 
+-In the checked 0.35.0 CLI, `trackio show --host HOST` controls the bind address, but the CLI has no `--port` option. Set `GRADIO_SERVER_PORT` for CLI launches, or use the Python `trackio.show(..., server_port=PORT)` API. Bind to `127.0.0.1` by default. If `TRACKIO_WRITE_TOKEN` is not fixed for a self-hosted process, the generated write token changes on restart; clients that send through the server must receive the current token through a secret channel. Never expose it in status summaries or recorded commands.
++An official standalone viewer is a separate choice when Lens is not selected.
++Inspect that installed CLI’s actual options, bind to loopback, and keep transport,
++proxy and credentials outside the training skill. Installing official Trackio agent
++skills is optional; neither SDK recording nor Lens needs them.
+ 
+ Do not start a public listener merely because remote viewing may be useful. External access is a separate, explicitly authorized operation.
+ 
+@@ -86,13 +97,10 @@
+ - for local storage, launch or reuse a dashboard that can read the exact Trackio data root with the recorded storage mode and a compatible Trackio release;
+ - if destination configuration is absent or conflicting, inspect the launch record and environment instead of guessing where the metrics went.
+ 
+-Resolve an environment for a new local dashboard in this order:
+-
+-1. use a project-declared viewer command or interpreter when one exists;
+-2. otherwise use the site-designated absolute Python executable in `TRACKIO_VIEWER_PYTHON`, when configured;
+-3. otherwise reuse the experiment environment only after confirming that it contains a compatible Trackio version and can access the recorded data root.
+-
+-Call the selected interpreter directly rather than depending on an ambient shell activation. Check its Trackio version before launch. Because Trackio is beta, prefer the exact recorded version for direct access to local storage; an already-running compatible server remains authoritative for its own storage, and browser clients do not need to match its Python version. Do not create, upgrade, or mutate an environment solely to view a run without authorization. `TRACKIO_VIEWER_PYTHON` is an operator locator and must not be forwarded into experiment configuration or confused with the test-only `TRACKIO_TEST_PYTHON`.
++Reuse the selected Lens installation or a project-declared viewer command. If an
++independent official viewer is requested, use a dedicated, compatible interpreter
++(e.g. an operator-provided `TRACKIO_VIEWER_PYTHON`) and check its version. Do not
++reuse, create or upgrade a training environment merely to launch a viewer.
+ 
+ For a new local tracked projection, set `TRACKIO_DIR` explicitly and resolve it before recording so later agents do not depend on a user-specific default. Set or record `TRACKIO_STORAGE_MODE` as well. A local dashboard process should receive those values explicitly and should not inherit Space or self-hosted destination settings. Record `destination_kind` as `local`, `self-hosted`, or `space`; for local storage also record the resolved non-secret data root and storage mode. Never record a write token or a credential-bearing/private endpoint. If a path or endpoint cannot safely be shared, keep the resolved locator in site-private inspection notes and put only a stable site alias in shared reports.
+ 
+@@ -124,11 +132,11 @@
+ 
+ The replay tool captures Trackio warnings and reports delivery as uncertain when any occur. Even with no warning, it reports that the API exposed no durable acknowledgement. Do not add a cursor and call it exactly-once unless the selected destination provides and the implementation persists a tested acknowledgement boundary.
+ 
+-Use `scripts/check_trackio_server.py` to test a dashboard from a headless host. It disables environment proxies, defaults to loopback, rejects credentials and query tokens in the URL, loads the HTML and one same-origin JavaScript or CSS asset, calls the project-list API, and can require a named project. These checks cover service reachability, frontend delivery, and the basic data API. They do not judge chart layout, browser-specific rendering, or interactive controls; use a real or headless browser for that additional layer when it matters.
++Use `scripts/check_trackio_server.py` to test a dashboard from a headless host. It disables environment proxies, defaults to loopback, rejects credentials and query tokens in the URL, accepts `--credentials /private/api-access.json` for Lens (owner-only file, token header, no URL secrets), loads the HTML and one same-origin JavaScript or CSS asset, calls the project-list API, and can require a named project. These checks cover service reachability, frontend delivery, and the basic data API. They do not judge chart layout, browser-specific rendering, or interactive controls; use a real or headless browser for that additional layer when it matters.
+ 
+ ## Upgrade and recover deliberately
+ 
+-Record the Trackio version with every tracked run. Do not upgrade Trackio, migrate its databases, or change the shared storage root merely to view one experiment without authorization. Before an authorized beta-version upgrade, stop or quiesce writers as required, preserve the project-owned raw records, and make a recoverable backup of Trackio storage.
++Record the Trackio version with every tracked run. A separately installed viewer can still migrate shared SQLite files: Python isolation is not storage isolation. Before backend upgrades, run the Lens compatibility gate with the declared writer versions; test old SDK fresh runs, append/strict resume, media/files/artifacts and concurrency on copies. Lock and `pip check` each environment’s dependency set, then perform an import/write/read smoke; resolver success alone does not prove API compatibility. Do not upgrade Trackio, migrate its databases, or change the shared storage root merely to view one experiment without authorization. Before an authorized beta-version upgrade, stop or quiesce writers as required, preserve the project-owned raw records, and make a recoverable backup of Trackio storage.
+ 
+ If Trackio data is missing or corrupt but raw records are intact, report the visualization loss separately from experiment success. Reconstruct through the bundled version-matched fresh-run replay or another tested importer; do not blindly replay into an existing run because repeated steps may duplicate observations. Event sequence detects source ordering problems, but a destination-specific durable acknowledgement is still required before a relay cursor can claim exactly-once progress.
+ 
+--- a/scripts/check_trackio_server.py
++++ b/scripts/check_trackio_server.py
+@@ -6,6 +6,8 @@
+ import argparse
+ import ipaddress
+ import json
++import os
++from pathlib import Path
+ import sys
+ import urllib.error
+ import urllib.parse
+@@ -116,14 +118,26 @@
+     timeout: float = 10.0,
+     project: str | None = None,
+     allow_remote: bool = False,
++    credentials: Path | None = None,
+ ) -> dict[str, Any]:
+     base_url = _validate_base_url(base_url, allow_remote=allow_remote)
++    headers = {}
++    if credentials is not None:
++        if credentials.is_symlink():
++            raise CheckError("credential file cannot be a symlink")
++        stat = credentials.stat()
++        if stat.st_uid != os.getuid() or stat.st_mode & 0o077:
++            raise CheckError("credential file must be owned by this account and mode 600")
++        token = json.loads(credentials.read_text()).get("api_token")
++        if not isinstance(token, str) or not token:
++            raise CheckError("missing Lens program token")
++        headers["X-Trackio-Lens-Token"] = token
+     base_parts = urllib.parse.urlsplit(base_url)
+     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
+ 
+     status, homepage, content_type = _request(
+         opener,
+-        urllib.request.Request(base_url + "/", headers={"Accept": "text/html"}),
++        urllib.request.Request(base_url + "/", headers={**headers, "Accept": "text/html"}),
+         timeout,
+     )
+     try:
+@@ -143,7 +157,7 @@
+         if _origin(parts) != _origin(base_parts):
+             continue
+         asset_status, asset_body, _ = _request(
+-            opener, urllib.request.Request(resolved), timeout
++            opener, urllib.request.Request(resolved, headers=headers), timeout
+         )
+         if asset_status == 200 and asset_body:
+             asset_url = parts.path
+@@ -155,7 +169,7 @@
+     api_request = urllib.request.Request(
+         base_url + "/api/get_all_projects",
+         data=b'{"data":[]}',
+-        headers={"Accept": "application/json", "Content-Type": "application/json"},
++        headers={**headers, "Accept": "application/json", "Content-Type": "application/json"},
+         method="POST",
+     )
+     api_status, api_body, _ = _request(opener, api_request, timeout)
+@@ -187,6 +201,7 @@
+     parser.add_argument("--url", default="http://127.0.0.1:7860")
+     parser.add_argument("--timeout", type=float, default=10.0)
+     parser.add_argument("--project")
++    parser.add_argument("--credentials", type=Path, help="Private Lens api-access.json file")
+     parser.add_argument(
+         "--allow-remote",
+         action="store_true",
+@@ -203,6 +218,7 @@
+             timeout=args.timeout,
+             project=args.project,
+             allow_remote=args.allow_remote,
++            credentials=args.credentials,
+         )
+     except CheckError as error:
+         report = {"ok": False, "error": str(error)}
+--- a/tests/test_experiment_tools.py
++++ b/tests/test_experiment_tools.py
+@@ -87,6 +87,15 @@
+     def setUp(self) -> None:
+         self.module = _load_tracking_module()
+         self.Recorder = self.module.ExperimentRecorder
++
++    def test_default_does_not_initialize_trackio(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            fake = _fake_trackio_module()
++            fake.init = mock.Mock(side_effect=AssertionError("No recording authorization"))
++            with mock.patch.dict(sys.modules, {"trackio": fake}):
++                with self.Recorder(Path(temporary) / "run", project="test", name="default") as recorder:
++                    recorder.log({"loss": 1.0}, step=0)
++            fake.init.assert_not_called()
+ 
+     def test_tracking_off_writes_valid_complete_record(self) -> None:
+         with tempfile.TemporaryDirectory() as temporary:

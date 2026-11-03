@@ -69,25 +69,65 @@ def check(source, output, old_python):
                         "Migration changed historical data; inspect private copy"
                     )
                 assert db.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
-        if (copy / "lens-compat.db").exists():
-            raise ValueError(
-                "Reserved synthetic project lens-compat already exists in source"
+        project = "lens-compat-" + __import__("uuid").uuid4().hex[:10]
+        fixture = Path(__file__).with_name("compatibility_fixture.py")
+
+        def scenario(python, phase, name="writer"):
+            subprocess.run(
+                [str(python), str(fixture), phase, project, name],
+                env=environment,
+                check=True,
+                stdout=log,
+                stderr=log,
             )
-        code = 'import trackio; r=trackio.init(project="lens-compat",name="older-writer",auto_log_gpu=False,auto_log_cpu=False);r.log({"loss":1.0},step=0);r.finish()'
-        run(old_python, code)
+
+        scenario(old_python, "seed")
         run(sys.executable, migrate)
-        run(
-            old_python,
-            code.replace('name="older-writer",', 'name="older-writer",resume="allow",')
-            .replace("1.0", "0.5")
-            .replace("step=0", "step=1"),
-        )
-        with sqlite3.connect(copy / "lens-compat.db") as db:
-            assert db.execute("SELECT COUNT(*) FROM metrics").fetchone()[0] == 2
-        run(
-            sys.executable,
-            'from trackio.sqlite_storage import SQLiteStorage; logs=SQLiteStorage.get_logs("lens-compat","older-writer"); assert len(logs)==2 and logs[-1]["loss"]==0.5',
-        )
+        scenario(old_python, "append")
+        scenario(old_python, "fresh", "new-after-migration")
+        children = [
+            subprocess.Popen(
+                [
+                    str(old_python),
+                    str(fixture),
+                    "concurrent",
+                    project,
+                    "parallel-" + str(index),
+                ],
+                env=environment,
+                stdout=log,
+                stderr=log,
+            )
+            for index in range(2)
+        ]
+        try:
+            run(sys.executable, migrate)
+            scenario(sys.executable, "verify", "writer")
+            for child in children:
+                if child.wait(timeout=60) != 0:
+                    raise RuntimeError(
+                        "Concurrent writer failed; inspect private compatibility log"
+                    )
+        finally:
+            for child in children:
+                if child.poll() is None:
+                    child.terminate()
+                    child.wait(timeout=10)
+        # Separate processes simulate repeated viewer opens and the fallback reader.
+        for python in (sys.executable, old_python, sys.executable):
+            if python == sys.executable:
+                run(python, migrate)
+            for name in ("writer", "new-after-migration", "parallel-0", "parallel-1"):
+                scenario(python, "verify", name)
+        for path in copy.glob("*.db"):
+            with sqlite3.connect(path) as db:
+                assert db.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        for (name, table), (columns, expected) in before.items():
+            with sqlite3.connect(copy / name) as db:
+                if table_digest(db, table, columns) != expected:
+                    raise ValueError(
+                        "Original data changed during writer compatibility check"
+                    )
 
     def version(python):
         return subprocess.check_output(
@@ -101,6 +141,16 @@ def check(source, output, old_python):
 
     report = {
         "old_backend": version(old_python),
+        "writer_dependencies": json.loads(
+            subprocess.check_output(
+                [
+                    str(old_python),
+                    "-c",
+                    "import json; from importlib.metadata import version; print(json.dumps({p:version(p) for p in ['trackio','huggingface-hub','gradio-client','numpy','pillow']}))",
+                ],
+                text=True,
+            )
+        ),
         "new_backend": version(sys.executable),
         "databases": databases,
         "preserved_tables": len(before),
@@ -109,6 +159,16 @@ def check(source, output, old_python):
         "old_writer_append_after_migration": "passed",
         "new_reader_after_old_write": "passed",
         "data_location": "private copy only",
+        "coverage": [
+            "new-run-before-migration",
+            "strict-resume-after-migration",
+            "missing-strict-resume-rejected",
+            "new-run-after-migration",
+            "concurrent-independent-runs",
+            "scalar-config-image-report-file-artifact",
+            "repeated-new-reader-and-old-reader",
+            "historical-data-preserved",
+        ],
     }
     (output / "compatibility.json").write_text(json.dumps(report, indent=2) + "\n")
     return report

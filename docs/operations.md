@@ -83,3 +83,5 @@ CLI 可用 `trackio-lens api --url URL --credentials /private/api-access.json --
 安装 Playwright Chromium 后运行 `.venv/bin/python scripts/check_demo.py --output /private/new-demo-directory`，自动创建合成实例并运行 [browser_check](../scripts/browser_check.py)。目录必须尚不存在；进程与端口随检查结束退出。该入口也用于 [CI](../.github/workflows/checks.yml)。
 
 历史兼容可重复运行 `scripts/check_compatibility.py --source /private/data --output /private/new-check --old-python /old/environment/bin/python`。它在线备份源库，核对新版本迁移前后的所有原表原列数据摘要，再用旧 SDK 在副本追加并由新版本读取。仅写入新建的副本目录；原数据和旧环境不修改。
+
+训练接入、独立 C++ 记录器和 SDK 矩阵的操作见 [记录指南](recording.md)。后端改变时发布器自动检查上一发布的 SDK，加上私有 `management.json` 中的 `writer_pythons` 解释器列表；首次采用非空存储时安装器支持重复 `--writer-python PATH`。这些解释器只在数据副本中运行，不升级它们。
