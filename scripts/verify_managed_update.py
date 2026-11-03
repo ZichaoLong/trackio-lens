@@ -20,6 +20,7 @@ from playwright.sync_api import expect, sync_playwright
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from release import activate, read_build  # noqa: E402
 
+from trackio_lens import skills  # noqa: E402
 from trackio_lens.auth import COOKIE  # noqa: E402
 from trackio_lens.config import private_json, private_path  # noqa: E402
 from trackio_lens.management import read_instance, read_management  # noqa: E402
@@ -30,6 +31,21 @@ def sign_in(page, base, credentials):
     page.get_by_label("Username", exact=True).fill(credentials["username"])
     page.get_by_label("Password", exact=True).fill(credentials["password"])
     page.get_by_role("button", name="Sign in", exact=True).click()
+
+
+def verify_skill(root, output, commit):
+    preference = skills.settings(root)
+    if not preference or not preference["destination"]:
+        raise ValueError("Acceptance requires an installed integration skill")
+    entry = Path(preference["destination"])
+    # Resolve the parent, not the entry (which deliberately follows current).
+    if not entry.parent.resolve().is_relative_to(output):
+        raise ValueError("Acceptance skill must be installed under --output")
+    assert not preference.get("retired")
+    assert entry.is_symlink() and entry.readlink() == skills.link_target(root)
+    selected = (root / "current").resolve()
+    assert entry.resolve() == selected / "source" / skills.PACKAGE
+    assert skills.validate_release(selected) == commit
 
 
 def verify(config, output, commit):
@@ -58,6 +74,7 @@ def verify(config, output, commit):
     initial = json.loads((state / "initial-access.json").read_text())
     base = f"http://127.0.0.1:{instance['port']}"
     before = read_build(root / "current/source/frontend/dist")["source_commit"]
+    verify_skill(root, output, before)
     if before == commit:
         raise ValueError(
             "Install the previous committed release before testing a new update"
@@ -158,6 +175,7 @@ def verify(config, output, commit):
                 raise TimeoutError("Acceptance publication deadline exceeded")
             assert client.get("/__lens/session").json()["role"] == "admin"
             assert client.get("/__lens/build").json()["source_commit"] == commit
+        verify_skill(root, output, commit)
         browser = playwright.chromium.launch(channel="chromium", headless=True)
         for storage, role, width in (
             (admin_storage, "admin", 1440),
@@ -224,6 +242,7 @@ def verify(config, output, commit):
                 projects.status_code == 200 and "lens-demo" in projects.json()["data"]
             )
     assert (root / "current").resolve() == previous
+    verify_skill(root, output, commit)
     result = {
         "from_commit": before,
         "to_commit": commit,
@@ -234,6 +253,7 @@ def verify(config, output, commit):
         "failed_start_restored": True,
         "anonymous_denied_after_recovery": True,
         "synthetic_instance_only": True,
+        "integration_skill_install_update_recovery": True,
     }
     private_json(output / "acceptance.json", result)
     return result
