@@ -449,18 +449,53 @@ def check_accounts(browser, base, owner, state, output):
         row.get_by_role("button", name="Enable account", exact=True).click()
         expect(row).to_contain_text("Enabled")
         users.get_by_label("Administrator current password").fill(owner["password"])
-        users.get_by_label("Viewer to reset").select_option(label=username)
-        users.get_by_label("New temporary password").fill(
+        row.get_by_role("button", name="Reset password", exact=True).click()
+        expect(row).to_contain_text("Reset password for " + username)
+        row.get_by_label("New temporary password").fill(
             "synthetic reset temporary password"
         )
-        users.get_by_role("button", name="Reset viewer password", exact=True).click()
+        row.get_by_role("button", name="Reset viewer password", exact=True).click()
         expect(users.get_by_role("status")).to_contain_text("Account saved")
         view.reload()
         expect(view.get_by_role("button", name="Sign in", exact=True)).to_be_visible()
         sign_in(view, username, "synthetic reset temporary password")
         expect(view.locator(".setup")).to_be_visible()
+        assert (
+            users.locator("li")
+            .filter(has_text=owner["username"])
+            .get_by_role("button", name="Delete account", exact=True)
+            .count()
+            == 0
+        )
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.screenshot(path=str(output / f"{width}-account-management.png"))
+        users.get_by_label("Administrator current password").fill(owner["password"])
+
+        def cancel_deletion(dialog):
+            assert (
+                username in dialog.message
+                and "Experiment data will be kept" in dialog.message
+            )
+            dialog.dismiss()
+
+        page.once("dialog", cancel_deletion)
+        row.get_by_role("button", name="Delete account", exact=True).click()
+        expect(row).to_be_visible()
+        assert reader.request.get(base + "/__lens/session").status == 200
+        page.once("dialog", lambda dialog: dialog.accept())
+        row.get_by_role("button", name="Delete account", exact=True).click()
+        expect(row).to_have_count(0)
+        expect(users.get_by_role("status")).to_contain_text("Viewer deleted")
+        assert reader.request.get(base + "/__lens/session").status == 401
+        view.reload()
+        expect(view.get_by_role("button", name="Sign in", exact=True)).to_be_visible()
+        sign_in(view, username, "synthetic reset temporary password")
+        expect(view.locator('[role="alert"]')).to_contain_text(
+            "Invalid username or password"
+        )
+        page.reload()
+        expect(users).to_be_visible()
+        expect(row).to_have_count(0)
         reader.close()
         admin.close()
 

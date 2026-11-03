@@ -289,7 +289,9 @@ class Auth:
                 if not isinstance(user_id, str) or user_id not in viewers:
                     raise ValueError("Select an existing viewer account")
                 user = viewers[user_id]
-                if action == "set-enabled" and type(values.get("enabled")) is bool:
+                if action == "delete":
+                    del viewers[user_id]
+                elif action == "set-enabled" and type(values.get("enabled")) is bool:
                     user["enabled"] = values["enabled"]
                 elif action == "reset-password":
                     password = values.get("password")
@@ -299,10 +301,13 @@ class Auth:
                     user["needs_setup"] = True
                 else:
                     raise ValueError("Unsupported account action")
-                user["revoked_before"] = time.time()
+                if action != "delete":
+                    user["revoked_before"] = time.time()
             credentials["schema"] = 2
             private_json(self.credentials_path, credentials)
             self.revoke(user_id=user_id)
+            if action == "delete":
+                return {"user_id": user_id, "deleted": True}
             return self.public(user_id, viewers[user_id])
 
     def rotate_api_token(self):

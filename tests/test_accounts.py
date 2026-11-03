@@ -359,6 +359,116 @@ def test_account_disable_reset_and_rename_are_scoped(instance):
         assert viewer.get("/__lens/session").status_code == 200
 
 
+@pytest.mark.parametrize("enabled", [True, False], ids=["enabled", "disabled"])
+def test_delete_viewer_revokes_sessions_and_recreation_is_a_new_identity(
+    instance, enabled
+):
+    app, owner = instance
+    with TestClient(app) as admin, TestClient(app) as viewer:
+        csrf = login(admin, owner)
+        record = create_viewer(admin, csrf, owner)
+        setup_viewer(viewer)
+        cookie = viewer.cookies.get(COOKIE)
+        if not enabled:
+            app.auth.manage_viewer(
+                {
+                    "action": "set-enabled",
+                    "user_id": record["user_id"],
+                    "enabled": False,
+                },
+                owner["password"],
+            )
+        response = admin.post(
+            "/__lens/users",
+            headers=csrf,
+            json={
+                "action": "delete",
+                "user_id": record["user_id"],
+                "current_password": owner["password"],
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["user"] == {
+            "user_id": record["user_id"],
+            "deleted": True,
+        }
+        assert record["user_id"] not in app.auth.credentials()["viewers"]
+        assert viewer.get("/__lens/session").status_code == 401
+        assert viewer.post("/api/get_all_projects", json={}).status_code == 401
+        restarted = Auth(app.config.state_dir, 3600)
+        assert not restarted.login("reader", "personal viewer password")
+        assert not restarted.session(cookie)
+        with app.auth.connect() as db:
+            assert not db.execute(
+                "SELECT 1 FROM user_sessions WHERE user_id = ?", (record["user_id"],)
+            ).fetchone()
+        assert admin.get("/__lens/session").status_code == 200
+        assert (
+            admin.post("/api/get_all_projects", headers=csrf, json={}).status_code
+            == 200
+        )
+        replacement = create_viewer(admin, csrf, owner)
+        assert replacement["user_id"] != record["user_id"]
+        assert not app.auth.session(cookie)
+        login(viewer, {"username": "reader", "password": "temporary viewer password"})
+        assert viewer.get("/__lens/session").json()["user_id"] == replacement["user_id"]
+
+
+def test_deleting_viewer_requires_administrator_password_csrf_and_viewer_target(
+    instance,
+):
+    app, owner = instance
+    with (
+        TestClient(app) as admin,
+        TestClient(app) as viewer,
+        TestClient(app) as anonymous,
+    ):
+        csrf = login(admin, owner)
+        record = create_viewer(admin, csrf, owner)
+        viewer_csrf = setup_viewer(viewer)
+        action = {
+            "action": "delete",
+            "user_id": record["user_id"],
+            "current_password": owner["password"],
+        }
+        assert anonymous.post("/__lens/users", json=action).status_code == 401
+        assert (
+            viewer.post("/__lens/users", headers=viewer_csrf, json=action).status_code
+            == 403
+        )
+        assert admin.post("/__lens/users", json=action).status_code == 403
+        assert (
+            admin.post(
+                "/__lens/users",
+                headers={**csrf, "X-Trackio-Lens-Token": owner["api_token"]},
+                json=action,
+            ).status_code
+            == 403
+        )
+        for invalid_password in ("", "wrong", None):
+            assert (
+                admin.post(
+                    "/__lens/users",
+                    headers=csrf,
+                    json={**action, "current_password": invalid_password},
+                ).status_code
+                == 403
+            )
+        for invalid_id in ("owner", "missing", None):
+            assert (
+                admin.post(
+                    "/__lens/users",
+                    headers=csrf,
+                    json={**action, "user_id": invalid_id},
+                ).status_code
+                == 400
+            )
+        assert viewer.get("/__lens/session").status_code == 200
+        assert admin.get("/__lens/session").status_code == 200
+        assert app.auth.check_password(owner["username"], owner["password"])
+        assert len(app.auth.list_users()) == 2
+
+
 def test_old_sessions_never_become_viewer_or_admin_sessions(instance):
     app, owner = instance
     with app.auth.connect() as db:
