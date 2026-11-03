@@ -51,6 +51,7 @@ MESSAGES = {
     "Unsupported completion shell": "此 Shell 尚不支持自动安装补全，请选择 bash、zsh 或 fish",
     "Invalid port": "端口无效",
     "Invalid user service name": "用户服务名称无效",
+    "Node 22.13+ and npm are required": "需要 Node 22.13+ 和 npm，请选择独立构建工具环境",
     "Node 22.13+ and npm are required for installation from source": "从源码安装需要 Node 22.13+ 和 npm",
     "Install from committed source; the checkout has uncommitted changes": "请从已提交源码安装，当前工作区存在未提交修改",
     "Existing data destination is retained; change instance configuration deliberately": "保留已有数据目录，请通过明确修改实例配置来迁移目的地",
@@ -197,6 +198,9 @@ class Parser(argparse.ArgumentParser):
                 "提示语言（默认 zh；可设 TRACKIO_LENS_LANG）",
             ),
         )
+
+    def error(self, message):
+        super().error(tr(message))
 
     def add_argument(self, *args, **kwargs):
         key = args[0].lstrip("-") if args else ""

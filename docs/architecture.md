@@ -8,7 +8,7 @@
 | 多账户、首次设置、角色与会话 | [Auth](../trackio_lens/auth.py) 保持单管理员及 viewers；独立 user_sessions 表绑定身份；[LensApp.route](../trackio_lens/app.py) 执行服务端权限；[READ_APIS](../trackio_lens/upstream.py) 是已审查读取操作 | [test_accounts](../tests/test_accounts.py) 覆盖越权、首次设置、改名、停用、独立撤销和旧会话拒绝；[AccountSetup](../frontend/src/components/AccountSetup.svelte)、[UserSettings](../frontend/src/components/UserSettings.svelte)、[浏览器检查](../scripts/browser_check.py) |
 | 登录、退出、撤销、程序认证 | [Auth](../trackio_lens/auth.py)、[LensApp.route](../trackio_lens/app.py)、[CLI](../trackio_lens/cli.py)、[LensAuth](../trackio_lens/client.py) | 全路由认证、CSRF、密码和 token 边界在 [test_auth](../tests/test_auth.py)；浏览器入口 [lens.js](../frontend/src/lib/lens.js) |
 | 安装、服务启停、自动启动、记录目的地 | [install](../scripts/install.py)、[management](../trackio_lens/management.py)、[CLI](../trackio_lens/cli.py)；实例 `management.json` 是安装信息源 | [test_management](../tests/test_management.py)、[verify_install](../scripts/verify_install.py)；[账户设置](../frontend/src/components/AccountSettings.svelte) 调用浏览器专用账户 API |
-| 命令行语言与自动补全 | [CLI](../trackio_lens/cli.py)、[cli_text](../trackio_lens/cli_text.py)、[completion](../trackio_lens/completion.py)；安装器负责用户 Shell 接入 | [test_cli](../tests/test_cli.py) 验证双语、JSON 稳定性、补全无副作用和真实 Bash/Zsh 补全 |
+| 命令行语言与自动补全 | [CLI](../trackio_lens/cli.py)、[cli_text](../trackio_lens/cli_text.py)、[completion](../trackio_lens/completion.py)；安装器负责用户 Shell 接入 | [test_cli](../tests/test_cli.py) 验证双语、JSON 稳定性、补全无副作用和真实 Bash/Zsh/Fish 补全 |
 | 训练 SDK 接入检查与显式登记 | [writers](../trackio_lens/writers.py)、共用 [writer_fixture](../trackio_lens/writer_fixture.py)；[记录指南](recording.md) | [test_writers](../tests/test_writers.py)；只用合成临时存储，登记写入私有 management.json |
 | Python / C++ 训练记录与重放 | [recording](recording.md)、[recorder](../trackio_lens/recorder.py)、[C++ writer](../examples/cpp/metrics_jsonl_writer.hpp)；事件 schema 位于 examples | [test_recorder](../tests/test_recorder.py) 编译真实 C++ 并核对 SDK 落盘、完整行跟随和失败边界；训练 skill 差异在 integrations |
 | 增加/适配上游接口 | [upstream.build_backend](../trackio_lens/upstream.py)，官方包 `trackio.server` 和 `trackio.asgi_app` | [source.json](../upstream/source.json) 定位正式 tag；前端 [api.js](../frontend/src/lib/api.js) 是直接消费者；发布副本验证会运行真实后端 |
@@ -29,3 +29,5 @@
 [check_demo](../scripts/check_demo.py) 是桌面/手机回归入口，[browser_check](../scripts/browser_check.py) 连接页面、接口和行为断言；[CI](../.github/workflows/checks.yml) 运行相同公开样例。导航抽查：会话有效期从 `Config.session_ttl_seconds` 到 `Auth.session` 和 `test_shortened_ttl_applies_to_existing_sessions`；图表排列从 `Metrics` 到 `plotLayout` 和手机单列断言；上游升级从 `source.json` 到 `sync_upstream` 和 `test_sync`。不需要读取整个应用来完成这些任务。
 
 刷新周期统一由 [hostPolling.LIVE_POLL_INTERVAL_MS](../frontend/src/lib/hostPolling.js) 定义，不随访问域名变化；应用与曲线任务避免重叠，隐藏标签暂停数据轮询，图表延续上游按视口建立/释放 Vega view。批量曲线请求的数量和点数上限由官方 `get_logs_batch` 定义，本地不修改原数据或维护第二套数据库。
+
+[verify_managed_update](../scripts/verify_managed_update.py) 在所有状态位于指定输出目录、使用独立 loopback 端口的全新合成安装上，验证关闭浏览器后的更新、管理员/普通用户会话与刷新、候选启动失败及实际恢复；它会重启该隔离实例，不能用于正式服务。

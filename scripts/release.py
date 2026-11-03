@@ -308,6 +308,19 @@ def compatibility_gate(candidate, previous, data_copy, state, log, writers=()):
     return {"required": True, "reports": reports}
 
 
+def select_build_tools(state):
+    """Direct publications use the same recorded Node as the browser worker."""
+    management = state / "management.json"
+    if management.exists():
+        private_path(management)
+        node_bin = Path(json.loads(management.read_text())["node_bin"])
+        if not node_bin.is_absolute() or not (node_bin / "node").is_file():
+            raise ValueError("The recorded Node installation is unavailable")
+        os.environ["PATH"] = (
+            str(node_bin) + os.pathsep + os.environ.get("PATH", "/usr/bin:/bin")
+        )
+
+
 def deploy(args, progress=lambda phase, **details: None):
     root = args.root.resolve()
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -324,6 +337,7 @@ def deploy(args, progress=lambda phase, **details: None):
     private_path(config_path)
     instance = json.loads(config_path.read_text())
     state = Path(instance["state_dir"])
+    select_build_tools(state)
     data = Path(instance["data_dir"])
     private_path(data, directory=True)
     private_path(state / "api-access.json")

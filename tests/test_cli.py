@@ -114,6 +114,35 @@ def test_bash_and_zsh_complete_real_options(tmp_path):
         )
         assert "--events" in result.splitlines()
 
+    if shutil.which("fish"):
+        fish = tmp_path / "completion.fish"
+        fish.write_text(script("fish", command))
+        result = subprocess.check_output(
+            [
+                "fish",
+                "--no-config",
+                "-c",
+                'source "$argv[1]"; complete -C "trackio-lens record --"',
+                str(fish),
+            ],
+            text=True,
+        )
+        assert "--events" in result.splitlines()
+        sample = tmp_path / "example.jsonl"
+        sample.touch()
+        result = subprocess.check_output(
+            [
+                "fish",
+                "--no-config",
+                "-c",
+                'source "$argv[1]"; complete -C "$argv[2]"',
+                str(fish),
+                "trackio-lens record --events " + str(tmp_path) + "/example",
+            ],
+            text=True,
+        )
+        assert str(sample) in result
+
 
 def test_explicit_bootstrap_and_interactive_admin_initialization(tmp_path):
     state = tmp_path / "bootstrap"

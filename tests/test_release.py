@@ -116,3 +116,22 @@ def test_candidate_cannot_migrate_live_credentials(tmp_path, monkeypatch):
     ) == {"checked": True}
     assert json.loads(credential.read_text())["username"] == "original"
     assert not copied[0].exists()
+
+
+def test_direct_release_uses_recorded_node_without_changing_training_environment(
+    tmp_path, monkeypatch
+):
+    import os
+
+    from trackio_lens.config import private_json
+
+    node_bin = tmp_path / "tools/bin"
+    node_bin.mkdir(parents=True)
+    (node_bin / "node").touch()
+    private_json(tmp_path / "management.json", {"node_bin": str(node_bin)})
+    monkeypatch.setenv("PATH", "/unrelated-shell/bin")
+    release.select_build_tools(tmp_path)
+    assert os.environ["PATH"] == str(node_bin) + os.pathsep + "/unrelated-shell/bin"
+    (node_bin / "node").unlink()
+    with pytest.raises(ValueError, match="Node"):
+        release.select_build_tools(tmp_path)
