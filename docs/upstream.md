@@ -11,4 +11,6 @@
 
 随后审阅 [上游适配](../trackio_lens/upstream.py) 和官方 ASGI/存储变更，在干净隔离环境重新解析 `pyproject.toml` 的依赖并更新 `requirements.lock`（包括当前已锁定的构建工具）；`test_sync.py` 会检查后端 pin 与来源一致。运行 README 中测试、lint、build；以 [合成样例](../scripts/seed_demo.py) 和历史数据副本做桌面/手机、读写边界、记录端和迁移兼容验证。行为或路径变化同步 [架构导航](architecture.md) 和相关测试。
 
+后端版本改变时，[release.compatibility_gate](../scripts/release.py) 会强制验证上一发布 SDK 和实例声明的 `writer_pythons`；维护矩阵的方法和依赖风险见 [记录指南](recording.md#sdk-与数据库兼容)。网页更新 Lens main 不代替本节的上游正式版同步。
+
 提交、推送后按 [部署流程](operations.md) 发布完整产物，核对运行实例身份并更新 [当前状态](status.md)。更新入口不会自动修改训练环境、推送上游 PR 或跳过兼容检查。
