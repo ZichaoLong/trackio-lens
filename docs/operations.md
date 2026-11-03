@@ -43,7 +43,7 @@ git push origin main
 .venv/bin/python scripts/release.py \
   --root /absolute/private/releases-root \
   --config /absolute/private/instance/instance.json \
-  --service trackio.service
+  --service trackio-lens.service
 ```
 
 这是部署授权下的操作，会替换指定的 **systemd user** 服务。首次执行前核实该服务确实拥有预期端口；脚本只管理指定服务，不终止未知端口占用者。Node/npm 必须在 PATH 中。
@@ -85,3 +85,5 @@ CLI 可用 `trackio-lens api --url URL --credentials /private/api-access.json --
 历史兼容可重复运行 `scripts/check_compatibility.py --source /private/data --output /private/new-check --old-python /old/environment/bin/python`。它在线备份源库，核对新版本迁移前后的所有原表原列数据摘要，再用旧 SDK 在副本追加并由新版本读取。仅写入新建的副本目录；原数据和旧环境不修改。
 
 训练接入、独立 C++ 记录器和 SDK 矩阵的操作见 [记录指南](recording.md)。后端改变时发布器自动检查上一发布的 SDK，加上私有 `management.json` 中的 `writer_pythons` 解释器列表；首次采用非空存储时安装器支持重复 `--writer-python PATH`。这些解释器只在数据副本中运行，不升级它们。
+
+设置页和 CLI 现在可以检查固定仓库 main 并更新到明确提交，操作和恢复流程见 [应用更新](updates.md)。管理命令路径、服务名称和发布根目录由安装信息记录，更新任务独立于查看服务。

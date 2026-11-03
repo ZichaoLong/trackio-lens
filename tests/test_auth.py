@@ -71,6 +71,8 @@ def login(client, credentials):
         "/mcp",
         "/__trackio/frontend_version",
         "/__lens/build",
+        "/__lens/updates",
+        "/__lens/updates/apply",
         "/%61pi/get_all_projects",
     ],
 )
@@ -316,3 +318,79 @@ def test_personal_password_initialization_has_no_plaintext_password(tmp_path):
     for path in state.iterdir():
         if path.suffix == ".json":
             assert "a personal private passphrase" not in path.read_text()
+
+
+def test_update_management_requires_browser_csrf_and_repository_reauthentication(
+    instance, monkeypatch
+):
+    from trackio_lens import updates
+    from trackio_lens.config import private_json
+    from trackio_lens.management import register_install
+
+    app, credentials = instance
+    config = app.config.state_dir / "instance.json"
+    private_json(
+        config, {"state_dir": app.config.state_dir, "data_dir": app.config.data_dir}
+    )
+    root = app.config.state_dir / "releases"
+    root.mkdir(mode=0o700)
+    register_install(config, root, "lens-test.service", "/usr/bin/python3", "/usr/bin")
+    calls = []
+    monkeypatch.setattr(
+        updates, "start", lambda *args: calls.append(args) or {"ok": True}
+    )
+    monkeypatch.setattr(
+        updates, "set_repository", lambda *args: calls.append(args) or {"ok": True}
+    )
+    with TestClient(app) as client:
+        token = {"X-Trackio-Lens-Token": credentials["api_token"]}
+        assert (
+            client.post("/__lens/updates/apply", headers=token, json={}).status_code
+            == 403
+        )
+        csrf = login(client, credentials)
+        assert client.post("/__lens/updates/apply", json={}).status_code == 403
+        assert (
+            client.post(
+                "/__lens/updates/apply",
+                json={},
+                headers={**csrf, "Origin": "https://foreign.test"},
+            ).status_code
+            == 403
+        )
+        assert (
+            client.post(
+                "/__lens/updates/apply", json={}, headers={**csrf, **token}
+            ).status_code
+            == 403
+        )
+        assert (
+            client.post(
+                "/__lens/updates/repository",
+                json={
+                    "repository": "https://github.com/example/repo.git",
+                    "current_password": "wrong",
+                },
+                headers=csrf,
+            ).status_code
+            == 403
+        )
+        assert not calls
+        assert (
+            client.post(
+                "/__lens/updates/apply", json={"commit": "a" * 40}, headers=csrf
+            ).status_code
+            == 200
+        )
+        assert calls[-1][1] == "a" * 40
+        assert (
+            client.post(
+                "/__lens/updates/repository",
+                json={
+                    "repository": "https://github.com/example/repo.git",
+                    "current_password": credentials["password"],
+                },
+                headers=csrf,
+            ).status_code
+            == 200
+        )

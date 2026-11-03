@@ -15,7 +15,7 @@ from starlette.responses import (
 )
 
 from .auth import COOKIE, CSRF_HEADER, TOKEN_HEADER, Auth
-from .config import Config
+from .config import Config, private_path
 from .upstream import build_backend, read_build
 
 
@@ -179,6 +179,69 @@ class LensApp:
                 return JSONResponse({"error": "Invalid CSRF token or origin"}, 403)
         if path == "/__lens/session" and request.method == "GET":
             return JSONResponse({**(session or {}), **self.auth.account()})
+        if path.startswith("/__lens/updates"):
+            if program or not session:
+                return JSONResponse({"error": "A browser login is required"}, 403)
+            from . import updates
+
+            management = self.config.state_dir / "management.json"
+            if not management.exists():
+                if path == "/__lens/updates" and request.method == "GET":
+                    return JSONResponse({"available": False})
+                return JSONResponse({"error": "Managed installation is required"}, 400)
+            private_path(management)
+            config_path = Path(json.loads(management.read_text())["config"])
+            try:
+                if path == "/__lens/updates" and request.method == "GET":
+                    return JSONResponse(
+                        {
+                            **await run_in_threadpool(updates.status, config_path),
+                            "running_build": self.build["source_commit"],
+                        }
+                    )
+                if request.method != "POST":
+                    return JSONResponse({"error": "Method not allowed"}, 405)
+                values = await self.json_body(request)
+                if path == "/__lens/updates/check":
+                    result = await run_in_threadpool(updates.check, config_path)
+                elif path == "/__lens/updates/apply":
+                    result = await run_in_threadpool(
+                        updates.start, config_path, values.get("commit")
+                    )
+                elif path == "/__lens/updates/recover":
+                    result = await run_in_threadpool(
+                        updates.start, config_path, None, "recover"
+                    )
+                elif path == "/__lens/updates/repository":
+                    password = values.get("current_password")
+                    if self.auth.rate_limited():
+                        return JSONResponse(
+                            {"error": "Too many attempts. Try again in five minutes."},
+                            429,
+                        )
+                    if not isinstance(password, str) or not await run_in_threadpool(
+                        self.auth.check_password,
+                        self.auth.account()["username"],
+                        password,
+                    ):
+                        return JSONResponse(
+                            {"error": "Current password is incorrect"}, 403
+                        )
+                    result = await run_in_threadpool(
+                        updates.set_repository, config_path, values.get("repository")
+                    )
+                else:
+                    return JSONResponse({"error": "Not found"}, 404)
+                return JSONResponse(result)
+            except (ValueError, FileNotFoundError) as error:
+                return JSONResponse({"error": str(error)}, 400)
+            except Exception:
+                return JSONResponse(
+                    {
+                        "error": "Update service is unavailable. Retry or inspect local status."
+                    },
+                    503,
+                )
         if path in {"/__lens/account", "/__lens/account/revoke"}:
             if program or not session:
                 return JSONResponse({"error": "A browser login is required"}, 403)

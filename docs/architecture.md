@@ -15,6 +15,7 @@
 | 实验筛选与比较 | [runFilters](../frontend/src/lib/runFilters.js)、[Runs](../frontend/src/pages/Runs.svelte)、[RunComparer](../frontend/src/components/RunComparer.svelte) | 相邻单元/组件测试；配置筛选与 URL 恢复 |
 | 媒体、文件、产物、深链接 | [Media](../frontend/src/pages/Media.svelte)、[Files](../frontend/src/pages/Files.svelte)、[ArtifactsDetail](../frontend/src/pages/ArtifactsDetail.svelte) | 文件 API 仍由官方后端裁定路径；[LensApp](../trackio_lens/app.py) 精确区分 `/files` 页面与 `/file` API |
 | 升级上游 | [sync_upstream](../scripts/sync_upstream.py)、[source.json](../upstream/source.json)、[pyproject](../pyproject.toml)、[requirements.lock](../requirements.lock) | [test_sync](../tests/test_sync.py)，[升级步骤](upstream.md)；冲突时不改工作区 |
+| 网页 / CLI 检查 main、固定提交更新 | [updates](../trackio_lens/updates.py)、[独立任务](../trackio_lens/update_worker.py)、[UpdateSettings](../frontend/src/components/UpdateSettings.svelte)；仓库配置来自私有 management.json | [test_updates](../tests/test_updates.py)、[test_auth](../tests/test_auth.py)、[更新操作](updates.md)；共用 release.publish，恢复先验证实际 HTTP 和数据副本 |
 | 构建、缓存、发布与恢复 | [build](../scripts/build.py)、[read_build](../trackio_lens/upstream.py)、[release](../scripts/release.py) | [test_release](../tests/test_release.py)、真实副本预检、部署后匿名/会话/资源哈希核验；运行身份来自认证后的 `/__lens/build` |
 | 备份与历史兼容 | [backup](../scripts/backup.py)、[check_compatibility](../scripts/check_compatibility.py)，[compatibility_fixture](../scripts/compatibility_fixture.py)、官方 `SQLiteStorage.migrate_all_projects` | SQLite online backup + integrity check；[release.compatibility_gate](../scripts/release.py) 在后端变更时强制运行已声明 SDK 矩阵；覆盖原表摘要、严格续写、新建、并发和媒体/产物读回 |
 

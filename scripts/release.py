@@ -272,7 +272,7 @@ def compatibility_gate(candidate, previous, data_copy, state, log, writers=()):
     return {"required": True, "reports": reports}
 
 
-def deploy(args):
+def deploy(args, progress=lambda phase, **details: None):
     root = args.root.resolve()
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     private_path(root, directory=True)
@@ -299,7 +299,9 @@ def deploy(args):
     )
     session = auth.create_session()
     previous = (root / "current").resolve() if (root / "current").is_symlink() else None
-    source = Path(__file__).resolve().parents[1]
+    source = Path(
+        getattr(args, "source", None) or Path(__file__).resolve().parents[1]
+    ).resolve()
     commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=source, text=True
     ).strip()
@@ -307,6 +309,7 @@ def deploy(args):
     candidate = root / "releases" / (stamp + "-" + commit[:12])
     candidate.mkdir(parents=True)
     try:
+        progress("building", source_commit=commit, candidate=str(candidate))
         with (candidate / "build.log").open("w") as log:
             run(
                 [
@@ -353,8 +356,11 @@ def deploy(args):
                 log=log,
             )
             run([str(python), "scripts/build.py"], cwd=candidate / "source", log=log)
+            run(["npm", "run", "lint"], cwd=candidate / "source/frontend", log=log)
+            run(["npm", "test"], cwd=candidate / "source/frontend", log=log)
             run([str(python), "-m", "pytest", "-q"], cwd=candidate / "source", log=log)
             print("Committed release built:", commit, flush=True)
+            progress("validating", source_commit=commit)
             copy = root / "validation" / stamp / "data"
             backup(data, copy)
             compatibility = compatibility_gate(
@@ -375,6 +381,7 @@ def deploy(args):
                 {**validation, "compatibility": compatibility},
             )
             shutil.rmtree(copy)
+        progress("backing_up")
         backup_dir = root / "backups" / stamp
         backup(data, backup_dir / "data")
         shutil.copy2(config_path, backup_dir / "instance.json")
@@ -395,6 +402,7 @@ def deploy(args):
             "127.0.0.1" if host == "0.0.0.0" else "[::1]" if host == "::" else host
         )
         url = f"{scheme}://{probe_host}:{instance.get('port', 7860)}"
+        progress("switching", previous_release=str(previous) if previous else None)
         result = activate(root, candidate, previous, args.service, url, session)
         private_json(
             candidate / "verified.json",
@@ -414,8 +422,20 @@ def deploy(args):
             },
         )
         print(json.dumps(result))
+        return result
     finally:
         auth.revoke(session[0])
+
+
+def publish(args, progress=lambda phase, **details: None):
+    args.root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_path(args.root, directory=True)
+    with (args.root / ".deploy.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit("Another publication is already running for this instance")
+        return deploy(args, progress)
 
 
 if __name__ == "__main__":
@@ -427,6 +447,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--python", help="Stable Python 3.11+ interpreter for the isolated release"
     )
+    parser.add_argument("--source", type=Path, help="Committed checkout to build")
     parser.add_argument(
         "--writer-python",
         action="append",
@@ -436,11 +457,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if not args.service.endswith(".service") or "/" in args.service:
         parser.error("Specify one systemd user .service name")
-    args.root.mkdir(parents=True, exist_ok=True, mode=0o700)
-    private_path(args.root, directory=True)
-    with (args.root / ".deploy.lock").open("a") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            raise SystemExit("Another publication is already running for this instance")
-        deploy(args)
+    publish(args)

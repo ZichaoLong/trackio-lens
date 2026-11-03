@@ -73,6 +73,23 @@ def main():
     serve = commands.add_parser("serve")
     serve.add_argument("--config", type=Path, default=config_default)
     serve.add_argument("--frontend", type=Path)
+    for name in (
+        "check-updates",
+        "update-status",
+        "update",
+        "recover-update",
+        "update-repository",
+    ):
+        command = commands.add_parser(name)
+        command.add_argument("--config", type=Path, default=config_default)
+        if name == "update":
+            command.add_argument(
+                "--commit",
+                required=True,
+                help="Exact main commit returned by check-updates",
+            )
+        if name == "update-repository":
+            command.add_argument("repository")
     from .recorder import add_arguments
 
     recorder = commands.add_parser(
@@ -140,6 +157,26 @@ def main():
                 print(f"export {key}={shlex.quote(value)}")
         else:
             print(json.dumps(info, indent=2, ensure_ascii=False))
+    elif args.command in {
+        "check-updates",
+        "update-status",
+        "update",
+        "recover-update",
+        "update-repository",
+    }:
+        from . import updates
+
+        if args.command == "check-updates":
+            result = updates.check(args.config)
+        elif args.command == "update":
+            result = updates.start(args.config, args.commit)
+        elif args.command == "recover-update":
+            result = updates.start(args.config, None, "recover")
+        elif args.command == "update-repository":
+            result = updates.set_repository(args.config, args.repository)
+        else:
+            result = updates.status(args.config)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "record":
         from .recorder import record
 

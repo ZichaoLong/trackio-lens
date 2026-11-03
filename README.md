@@ -19,6 +19,9 @@ The installer builds an isolated release and a systemd user service. `start`, `s
 installs into a training environment. Set a personal password during installation,
 or change the bootstrap password in Settings. See [operations](docs/operations.md)
 for ports, existing instances, account recovery and deployment verification.
+The interface supports Chinese and English. [Recording](docs/recording.md) covers
+independent Python SDKs and C++ JSONL import; [updates](docs/updates.md) explains
+the web and CLI update workflow.
 
 For development, use Python 3.11+ and Node 22.13+:
 

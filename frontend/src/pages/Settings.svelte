@@ -1,5 +1,6 @@
 <script>
   import { t, locale, setLocale } from "../lib/i18n.js";
+  import UpdateSettings from "../components/UpdateSettings.svelte";
   import AccountSettings from "../components/AccountSettings.svelte";
   import { copyTextToClipboard } from "../lib/clipboard.js";
   import {
@@ -104,6 +105,7 @@
     </select>
   </section>
   <AccountSettings />
+  <UpdateSettings />
 
   <div class="two-col">
     <div class="col col-left">
