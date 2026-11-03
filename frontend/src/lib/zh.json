@@ -459,5 +459,7 @@
   "Update worker stopped. Recover before starting another update.": "更新任务已停止，请先恢复核验再开始新的更新。",
   "Update interrupted during activation. Recover to verify the running version.": "更新切换被中断，请恢复并核验当前运行版本。",
   "Update failed before activation. The running release was not changed.": "更新在切换前失败，当前运行版本保持不变。",
-  "Update failed; the verified authenticated release was restored.": "更新失败，已恢复到通过验证的认证版本。"
+  "Update failed; the verified authenticated release was restored.": "更新失败，已恢复到通过验证的认证版本。",
+  "This page": "当前页面",
+  "Running service": "运行中的服务"
 }

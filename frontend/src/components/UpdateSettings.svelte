@@ -3,6 +3,7 @@
   import { t } from "../lib/i18n.js";
   import { frontendCommit } from "../lib/lens.js";
   let state = $state(null);
+  let runningBuild = $state(null);
   let repository = $state("");
   let password = $state("");
   let busy = $state(false);
@@ -18,6 +19,7 @@
       const response = await fetch("/__lens/updates", {cache: "no-store"});
       if (!response.ok) throw Error();
       state = await response.json();
+      if (state.running_build) runningBuild = typeof state.running_build === "string" ? {source_commit: state.running_build} : state.running_build;
       if (!repository) repository = state.repository || "";
       if (error === "Cannot read update status. Retrying…") error = "";
     } catch { error = "Cannot read update status. Retrying…"; }
@@ -41,7 +43,8 @@
   <h3>{$t("Application updates")}</h3>
   {#if state?.available}
     <p>{$t("Updates run independently of this page and preserve normal login sessions.")}</p>
-    <p class="identity">{$t("Running frontend")}: <code>{frontendCommit.slice(0, 12)}</code> · {$t("Backend")}: <code>{state.installed_build?.backend_version || "—"}</code></p>
+    <p class="identity">{$t("This page")}: <code>{frontendCommit.slice(0, 12)}</code></p>
+    {#if runningBuild}<p class="identity">{$t("Running service")}: <code>{runningBuild.source_commit.slice(0,12)}</code> · {$t("Backend")}: <code>{runningBuild.backend_version || "—"}</code></p>{/if}
     <p class="identity">{state.repository} · <code>main</code></p>
     <div class="actions">
       <button disabled={busy || running || state.operation?.phase === "interrupted"} onclick={() => action("check")}>{$t(busy ? "Working…" : "Check main for updates")}</button>
@@ -62,10 +65,10 @@
         {#if state.operation.phase === "interrupted"}
           <button disabled={busy} onclick={() => action("recover")}>{$t("Recover and verify")}</button>
         {/if}
-        {#if state.operation.result?.source_commit && state.operation.result.source_commit !== frontendCommit}
-          <button onclick={() => location.reload()}>{$t("Refresh to load the verified build")}</button>
-        {/if}
       </div>
+    {/if}
+    {#if (state.operation?.result?.source_commit && state.operation.result.source_commit !== frontendCommit) || (runningBuild && runningBuild.source_commit !== frontendCommit)}
+      <button onclick={() => location.reload()}>{$t("Refresh to load the verified build")}</button>
     {/if}
     <details>
       <summary>{$t("Update repository")}</summary>

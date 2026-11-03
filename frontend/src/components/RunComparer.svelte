@@ -144,7 +144,7 @@ Props:
               </tr>
               {#each group.rows as row (`${row.section}\0${row.key}`)}
                 <tr class:differs={row.differs}>
-                  <td class="key-col" title={row.label}>{row.label}</td>
+                  <td class="key-col" title={row.section === "metadata" ? $t(row.label) : row.label}>{row.section === "metadata" ? $t(row.label) : row.label}</td>
                   {#each displayRuns as run, colIndex (runKeyOf(run))}
                     {@const cell = formatCellValue(row.values[colIndex])}
                     <td class="value-cell">

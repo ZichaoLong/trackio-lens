@@ -196,7 +196,10 @@ class LensApp:
                     return JSONResponse(
                         {
                             **await run_in_threadpool(updates.status, config_path),
-                            "running_build": self.build["source_commit"],
+                            "running_build": {
+                                key: self.build[key]
+                                for key in ("source_commit", "backend_version")
+                            },
                         }
                     )
                 if request.method != "POST":

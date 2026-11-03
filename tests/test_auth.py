@@ -342,6 +342,11 @@ def test_update_management_requires_browser_csrf_and_repository_reauthentication
     monkeypatch.setattr(
         updates, "set_repository", lambda *args: calls.append(args) or {"ok": True}
     )
+    monkeypatch.setattr(
+        updates,
+        "status",
+        lambda _: {"available": True, "installed_build": {"source_commit": "b" * 40}},
+    )
     with TestClient(app) as client:
         token = {"X-Trackio-Lens-Token": credentials["api_token"]}
         assert (
@@ -349,6 +354,9 @@ def test_update_management_requires_browser_csrf_and_repository_reauthentication
             == 403
         )
         csrf = login(client, credentials)
+        identity = client.get("/__lens/updates").json()
+        assert identity["running_build"]["source_commit"] == "a" * 40
+        assert identity["installed_build"]["source_commit"] == "b" * 40
         assert client.post("/__lens/updates/apply", json={}).status_code == 403
         assert (
             client.post(
