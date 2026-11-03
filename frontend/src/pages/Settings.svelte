@@ -1,4 +1,5 @@
 <script>
+  import AccountSettings from "../components/AccountSettings.svelte";
   import { copyTextToClipboard } from "../lib/clipboard.js";
   import {
     getThemePreference,
@@ -61,8 +62,8 @@
     const sf = spaceFlag();
     const proj = cliProject || "<project>";
     return [
-      { title: "Launch dashboard", cmd: `trackio show` },
-      { title: "Launch dashboard (project)", cmd: `trackio show --project "${proj}"` },
+      { title: "Viewer status", cmd: `trackio-lens status` },
+      { title: "Recording destination", cmd: `trackio-lens recording-info --json` },
       { title: "List projects", cmd: `trackio${sf} list projects` },
       { title: "List runs", cmd: `trackio${sf} list runs --project "${proj}"` },
       { title: "List metrics", cmd: `trackio${sf} list metrics --project "${proj}" --run <run>` },
@@ -95,6 +96,7 @@
 
 <div class="settings-page">
   <h2 class="page-title">Settings</h2>
+  <AccountSettings />
 
   <div class="two-col">
     <div class="col col-left">

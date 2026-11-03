@@ -229,6 +229,14 @@ def deploy(args):
     root = args.root.resolve()
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     private_path(root, directory=True)
+    existing_unit = Path.home() / ".config/systemd/user" / args.service
+    if (
+        existing_unit.exists()
+        and str(root / "current/venv/bin/trackio-lens") not in existing_unit.read_text()
+    ):
+        raise ValueError(
+            "Service ownership mismatch; refusing to overwrite another service"
+        )
     config_path = args.config.resolve()
     private_path(config_path)
     instance = json.loads(config_path.read_text())
@@ -268,13 +276,22 @@ def deploy(args):
                 cwd=candidate / "source",
                 log=log,
             )
-            run([sys.executable, "-m", "venv", str(candidate / "venv")], log=log)
+            run(
+                [
+                    getattr(args, "python", None) or sys.executable,
+                    "-m",
+                    "venv",
+                    str(candidate / "venv"),
+                ],
+                log=log,
+            )
             python = candidate / "venv/bin/python"
             run(
                 [str(python), "-m", "pip", "install", "-r", "requirements.lock"],
                 cwd=candidate / "source",
                 log=log,
             )
+            run([str(python), "-m", "pip", "check"], log=log)
             run(
                 [
                     str(python),
@@ -349,6 +366,9 @@ if __name__ == "__main__":
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--service", required=True)
+    parser.add_argument(
+        "--python", help="Stable Python 3.11+ interpreter for the isolated release"
+    )
     args = parser.parse_args()
     if not args.service.endswith(".service") or "/" in args.service:
         parser.error("Specify one systemd user .service name")

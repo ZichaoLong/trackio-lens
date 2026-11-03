@@ -6,7 +6,21 @@ Lens retains the complete [Trackio](https://github.com/gradio-app/trackio) front
 
 Start with [development](docs/development.md), [architecture and task navigation](docs/architecture.md), [instance operation](docs/operations.md), or [current delivery status](docs/status.md). Product behavior is defined in [docs/product.md](docs/product.md).
 
-Use Python 3.11+ and Node 22 (22.13+ for the upstream ESLint toolchain):
+Install committed source with a stable Python 3.11+ interpreter and Node 22.13+:
+
+```sh
+./install.sh --python /absolute/path/to/python3
+~/.local/bin/trackio-lens status
+~/.local/bin/trackio-lens recording-info --json
+```
+
+The installer builds an isolated release and a systemd user service. `start`, `stop`,
+`restart`, `enable` and `disable` manage that service from any directory. It never
+installs into a training environment. Set a personal password during installation,
+or change the bootstrap password in Settings. See [operations](docs/operations.md)
+for ports, existing instances, account recovery and deployment verification.
+
+For development, use Python 3.11+ and Node 22.13+:
 
 ```sh
 python3 -m venv .venv

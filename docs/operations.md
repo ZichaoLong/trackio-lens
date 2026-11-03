@@ -4,6 +4,14 @@
 
 ## 创建实例
 
+独立安装优先使用仓库的 `./install.sh --python /absolute/stable/python3`（Python 3.11+，Node 22.13+ 和 npm）。安装器只接受已提交源码，在私有发布目录构建完整前端、安装锁定依赖、验证数据副本并发布。它不把 Lens 装进调用者的 Python 或训练环境。新实例交互设置账户，自动化安装可明确传 `--bootstrap-account` 生成私有首次登录文件。
+
+默认命令位于 `~/.local/bin/trackio-lens`，可从任意工作目录执行。将该目录加入个人 PATH 后使用 `trackio-lens start`、`stop`、`restart`、`status`、`enable`、`disable`。`enable/disable` 只改变自动启动，`start/stop` 只改变当前运行。新实例默认 enable；Linux 用户服务随用户管理器启动，脱离登录运行需本站已启用 linger。`status` 区分 systemd 状态与已安装构建，不把目录身份当成实际 HTTP 核验。
+
+可配置 `--root`、`--config`、`--data-dir`、`--host`、`--port`、`--service` 和 `--command`；已有实例保留数据及账户。迁移已验证的旧 Lens 单元时明确传 `--migrate-service OLD.service --service trackio-lens.service`，仅停止检查过归属的单元，新单元实际 HTTP 验证失败则恢复旧单元。新安装不会接管无关服务。安装器的完整帮助为 `./install.sh --help`。
+
+以下为不安装 systemd 的手工创建方式：
+
 ```sh
 umask 077
 mkdir -p "$HOME/.config/trackio-lens" "$HOME/.local/share/trackio-lens/data"
@@ -24,7 +32,9 @@ mkdir -p "$HOME/.config/trackio-lens" "$HOME/.local/share/trackio-lens/data"
 
 未列出的默认值只在 [Config](../trackio_lens/config.py) 维护。端口被占用会失败，绝不自动换端口。直接 HTTPS 可配置 `ssl_certfile`、`ssl_keyfile`，并启用 `cookie_secure`。经 HTTPS 反向代理也可启用该选项；监听 HTTP 的 IP＋端口实例需要关闭它。不会信任 `X-Forwarded-*` 来豁免认证。对外传输密码时使用 HTTPS；loopback HTTP 可用于本机或已有安全隧道。
 
-首次密码与程序读取 token 在私有的 `initial-access.json`，仅在实例账号的本地终端读取，不贴到日志/聊天/URL。密码仅以 scrypt 哈希用于认证。初始明文文件转存密码管理器后可删除；`reset-password --state-dir PATH` 交互修改密码并撤销全部浏览器会话。`revoke-sessions --state-dir PATH` 只撤销会话。程序读取 token 是独立凭据，使用后仍需保密；若需轮换，安全地更新 `credentials.json` 的 `api_token_hash`（SHA-256），并更新调用端。密码重置不自动轮换程序 token。
+首次密码在私有的 `initial-access.json`，程序读取 token 单独保存在 `api-access.json`。仅在实例账号的本地终端读取，不贴到日志/聊天/URL。服务使用 `credentials.json` 中的 scrypt 哈希认证，修改初始交付文件不改变密码。旧实例首次加载新版时分离交付文件，但不轮换密码、token 或会话。
+
+设置页可用当前密码修改账户名和密码（支持密码管理器与口令短语）；改密撤销其他设备会话，当前设备取得新会话，初始明文交付文件删除。`trackio-lens reset-password` 提供本机交互恢复并撤销全部浏览器会话；`revoke-sessions` 只撤销会话。`rotate-api-token` 将新程序凭据保存到 `api-access.json`，旧 token 即失效。密码重置不轮换程序 token。管理命令使用安装器配置的实例，可用 `--config` 或 `--state-dir` 明确选择其他实例。
 
 ## 构建、发布、恢复
 
@@ -53,14 +63,16 @@ import json
 from pathlib import Path
 from trackio_lens.client import remote_client
 
-credentials = json.loads(Path("/private/initial-access.json").read_text())
+credentials = json.loads(Path("/private/api-access.json").read_text())
 client = remote_client("http://127.0.0.1:7860", credentials["api_token"])
 projects = client.predict(api_name="/get_all_projects")
 ```
 
 HTTP 写入通过同一适配器传 `write_token=`；直接 HTTP 调用也可同时发送这两个 header。浏览器默认只查看，保留官方写入边界。上游 SDK/CLI 直接指定 `server_url` 不会自动添加 Lens 读取凭据；需要 HTTP 的程序使用该适配器或显式 headers。普通同账号的本地 `trackio.init()` 继续直接记录原数据目录，不需读取 token，不修改训练环境。
 
-CLI 可用 `trackio-lens api --url URL --credentials /private/initial-access.json --api get_all_projects`，参数从 `--params-file FILE` 读取；写入另传 `--write-token-file FILE`。凭据内容不进入命令行参数或 URL。
+CLI 可用 `trackio-lens api --url URL --credentials /private/api-access.json --api get_all_projects`，参数从 `--params-file FILE` 读取；写入另传 `--write-token-file FILE`。凭据内容不进入命令行参数或 URL。
+
+明确授权记录后，训练启动器从 `trackio-lens recording-info --json` 读取实例的非秘密目的地，将返回的 `TRACKIO_DIR` 和 `TRACKIO_STORAGE_MODE` 只设置给这次任务，并在导入 Trackio 前生效。`--shell` 可输出经过 shell 转义的环境赋值，不修改 shell 初始化文件。该查询不依赖查看服务正在运行。项目仍使用自己的 SDK 和原始记录，不自动安装 Lens 或改写已有目的地。
 
 匿名仅允许 `/__lens/login` 登录页面/提交和 `/healthz` 最小健康检查；静态资源、版本、API、文件、媒体、产物、兼容入口、WebSocket 均在边界内。目标隔离普通其他系统账号，不承诺隔离 root 或控制实例账号的进程。
 

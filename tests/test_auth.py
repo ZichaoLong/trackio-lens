@@ -43,6 +43,7 @@ def instance(tmp_path):
     )
     app = LensApp(config, (backend, {"log", "delete_run", "upload"}, "write-secret"))
     credentials = json.loads((state / "initial-access.json").read_text())
+    credentials.update(json.loads((state / "api-access.json").read_text()))
     return app, credentials
 
 
@@ -222,3 +223,96 @@ def test_shortened_ttl_applies_to_existing_sessions(instance):
         db.execute("UPDATE sessions SET created = ?", (time.time() - 10,))
     assert app.auth.session(token)
     assert Auth(app.config.state_dir, ttl=5).session(token) is None
+
+
+def test_personal_account_revokes_other_devices_but_keeps_program_token(instance):
+    app, credentials = instance
+    old, _, _ = app.auth.create_session()
+    with TestClient(app) as client:
+        headers = login(client, credentials)
+        values = {
+            "username": "researcher",
+            "current_password": credentials["password"],
+            "password": "a memorable private passphrase",
+        }
+        assert client.post("/__lens/account", json=values).status_code == 403
+        assert (
+            client.post(
+                "/__lens/account",
+                json={**values, "current_password": "wrong"},
+                headers=headers,
+            ).status_code
+            == 403
+        )
+        assert (
+            client.post(
+                "/__lens/account", json={**values, "password": "short"}, headers=headers
+            ).status_code
+            == 400
+        )
+        assert app.auth.session(old)
+        response = client.post("/__lens/account", json=values, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["username"] == "researcher"
+        assert not response.json()["needs_setup"]
+        assert client.get("/__lens/session").status_code == 200
+        assert not app.auth.session(old)
+        assert app.auth.check_token(credentials["api_token"])
+        assert not (app.config.state_dir / "initial-access.json").exists()
+        assert (
+            json.loads((app.config.state_dir / "api-access.json").read_text())[
+                "api_token"
+            ]
+            == credentials["api_token"]
+        )
+        assert app.auth.check_password("researcher", values["password"])
+        assert not app.auth.check_password(
+            credentials["username"], credentials["password"]
+        )
+
+
+def test_program_credentials_cannot_manage_account(instance):
+    app, credentials = instance
+    with TestClient(app) as client:
+        program = {"X-Trackio-Lens-Token": credentials["api_token"]}
+        for path in ("/__lens/account", "/__lens/account/revoke"):
+            assert client.get(path, headers=program).status_code == 403
+            assert client.post(path, json={}, headers=program).status_code == 403
+
+
+def test_legacy_handoff_and_session_schema_remain_compatible(instance):
+    from trackio_lens.auth import Auth
+
+    app, credentials = instance
+    state = app.config.state_dir
+    (state / "initial-access.json").write_text(json.dumps(credentials))
+    (state / "api-access.json").unlink()
+    old, _, _ = app.auth.create_session()
+    restarted = Auth(state, 3600)
+    assert restarted.session(old)
+    assert "api_token" not in json.loads((state / "initial-access.json").read_text())
+    assert (
+        json.loads((state / "api-access.json").read_text())["api_token"]
+        == credentials["api_token"]
+    )
+    # The verified fallback still inserts four values without a column list.
+    with restarted.connect() as db:
+        db.execute(
+            "INSERT INTO sessions VALUES (?, ?, ?, ?)",
+            ("legacy", "csrf", time.time(), time.time() + 60),
+        )
+        assert len(list(db.execute("PRAGMA table_info(sessions)"))) == 4
+
+
+def test_personal_password_initialization_has_no_plaintext_password(tmp_path):
+    from trackio_lens.auth import Auth
+
+    state = tmp_path / "personal"
+    initialize(state, "owner", "a personal private passphrase")
+    auth = Auth(state, 3600)
+    assert not (state / "initial-access.json").exists()
+    assert not auth.account()["needs_setup"]
+    assert auth.check_password("owner", "a personal private passphrase")
+    for path in state.iterdir():
+        if path.suffix == ".json":
+            assert "a personal private passphrase" not in path.read_text()

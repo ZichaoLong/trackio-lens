@@ -78,6 +78,33 @@ class LensApp:
             } and parsed.netloc == request.headers.get("host")
         return True
 
+    async def json_body(self, request, limit=8192):
+        body = bytearray()
+        async for chunk in request.stream():
+            body.extend(chunk)
+            if len(body) > limit:
+                raise ValueError("Request too large")
+        value = json.loads(body)
+        if not isinstance(value, dict):
+            raise ValueError("Expected a JSON object")
+        return value
+
+    def session_response(self, session):
+        token, csrf, expires = session
+        response = JSONResponse(
+            {"csrf": csrf, "expires": expires, **self.auth.account()}
+        )
+        response.set_cookie(
+            COOKIE,
+            token,
+            max_age=self.config.session_ttl_seconds,
+            httponly=True,
+            secure=self.config.cookie_secure,
+            samesite="lax",
+            path="/",
+        )
+        return response
+
     async def route(self, request):
         path = request.url.path
         if path == "/healthz" and request.method in {"GET", "HEAD"}:
@@ -108,22 +135,10 @@ class LensApp:
                     raise ValueError()
             except (ValueError, KeyError, TypeError):
                 return JSONResponse({"error": "Invalid credentials"}, 400)
-            if not await run_in_threadpool(
-                self.auth.check_password, username, password
-            ):
+            session = await run_in_threadpool(self.auth.login, username, password)
+            if not session:
                 return JSONResponse({"error": "Invalid username or password"}, 401)
-            token, csrf, expires = self.auth.create_session()
-            response = JSONResponse({"csrf": csrf, "expires": expires})
-            response.set_cookie(
-                COOKIE,
-                token,
-                max_age=self.config.session_ttl_seconds,
-                httponly=True,
-                secure=self.config.cookie_secure,
-                samesite="lax",
-                path="/",
-            )
-            return response
+            return self.session_response(session)
 
         program = self.auth.check_token(request.headers.get(TOKEN_HEADER, ""))
         session_token = request.cookies.get(COOKIE, "")
@@ -149,9 +164,46 @@ class LensApp:
             ):
                 return JSONResponse({"error": "Invalid CSRF token or origin"}, 403)
         if path == "/__lens/session" and request.method == "GET":
-            return JSONResponse(
-                {**(session or {}), "username": self.auth.credentials()["username"]}
-            )
+            return JSONResponse({**(session or {}), **self.auth.account()})
+        if path in {"/__lens/account", "/__lens/account/revoke"}:
+            if program or not session:
+                return JSONResponse({"error": "A browser login is required"}, 403)
+            if path == "/__lens/account" and request.method == "GET":
+                return JSONResponse(self.auth.account())
+            if request.method != "POST":
+                return JSONResponse({"error": "Method not allowed"}, 405)
+            if self.auth.rate_limited():
+                return JSONResponse(
+                    {"error": "Too many attempts. Try again in five minutes."}, 429
+                )
+            try:
+                values = await self.json_body(request)
+                current = values.get("current_password")
+                if not isinstance(current, str) or not current:
+                    raise ValueError("Enter your current password")
+                if path.endswith("/revoke"):
+                    if not await run_in_threadpool(
+                        self.auth.check_password,
+                        self.auth.account()["username"],
+                        current,
+                    ):
+                        raise PermissionError("Current password is incorrect")
+                    self.auth.revoke()
+                    response = JSONResponse({"ok": True})
+                    response.delete_cookie(COOKIE, path="/")
+                    return response
+                renewed = await run_in_threadpool(
+                    self.auth.change_account,
+                    values.get("username"),
+                    values.get("password"),
+                    current,
+                    True,
+                )
+                return self.session_response(renewed)
+            except PermissionError as error:
+                return JSONResponse({"error": str(error)}, 403)
+            except (ValueError, TypeError) as error:
+                return JSONResponse({"error": str(error)}, 400)
         if path == "/__lens/logout" and request.method == "POST":
             self.auth.revoke(session_token)
             response = JSONResponse({"ok": True})

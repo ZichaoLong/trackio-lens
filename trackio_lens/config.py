@@ -2,8 +2,27 @@
 
 import json
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+
+def private_json(path: Path, value) -> None:
+    """Atomically replace a private instance file, including on a full disk."""
+    private_path(path.parent, directory=True)
+    if path.exists() or path.is_symlink():
+        private_path(path)
+    fd, temporary = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w") as out:
+            json.dump(value, out, ensure_ascii=False, indent=2, default=str)
+            out.write("\n")
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def private_path(path: Path, *, directory: bool = False) -> None:

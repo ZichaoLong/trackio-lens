@@ -1,11 +1,16 @@
 import { writable } from "svelte/store";
 
-export const connection = writable({ username: "", lastUpdated: null, errors: [], updateAvailable: false });
+export const connection = writable({ username: "", needsSetup: false, lastUpdated: null, errors: [], updateAvailable: false });
 export const frontendCommit = import.meta.env.VITE_LENS_COMMIT || "development";
 let csrf = "";
 let originalFetch;
 let redirecting = false;
 const failures = new Map();
+
+export function acceptSession(session) {
+  csrf = session.csrf;
+  connection.update(value => ({ ...value, username: session.username, needsSetup: session.needs_setup }));
+}
 
 function signIn() {
   if (redirecting) return;
@@ -19,8 +24,7 @@ export async function initializeLens() {
   if (response.status === 401) { signIn(); return false; }
   if (!response.ok) throw Error("Unable to check your session. Please refresh to retry.");
   const session = await response.json();
-  csrf = session.csrf;
-  connection.update(value => ({ ...value, username: session.username }));
+  acceptSession(session);
   window.fetch = async (input, init = {}) => {
     const url = new URL(input instanceof Request ? input.url : input, location.href);
     if (url.origin !== location.origin) return originalFetch(input, init);

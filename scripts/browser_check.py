@@ -189,6 +189,62 @@ def check(base, credentials_path, output, strict=False):
                 == 401
             )
             context.close()
+        for width in (1440, 390):
+            context = browser.new_context(viewport={"width": width, "height": 844})
+            page = context.new_page()
+            page.goto(base + "/settings")
+            page.get_by_label("Username", exact=True).fill(credentials["username"])
+            page.get_by_label("Password", exact=True).fill(credentials["password"])
+            page.get_by_role("button", name="Sign in", exact=True).click()
+            expect(page.locator(".account")).to_be_visible()
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            old_cookie = next(
+                c["value"]
+                for c in context.cookies()
+                if c["name"] == "trackio_lens_session"
+            )
+            page.get_by_label("Current password", exact=True).fill("wrong-password")
+            page.get_by_label("New password or passphrase", exact=True).fill(
+                "synthetic personal phrase 2026"
+            )
+            page.get_by_label("Repeat new password", exact=True).fill(
+                "synthetic personal phrase 2026"
+            )
+            page.get_by_role("button", name="Save account", exact=True).click()
+            expect(page.get_by_role("alert")).to_contain_text(
+                "Current password is incorrect"
+            )
+            page.get_by_label("Current password", exact=True).fill(
+                credentials["password"]
+            )
+            page.get_by_role("button", name="Save account", exact=True).click()
+            expect(page.locator(".account").get_by_role("status")).to_contain_text(
+                "Account saved"
+            )
+            credentials["password"] = "synthetic personal phrase 2026"
+            assert context.request.get(base + "/__lens/session").ok
+            assert (
+                context.request.get(
+                    base + "/__lens/session",
+                    headers={"Cookie": "trackio_lens_session=" + old_cookie},
+                ).status
+                == 401
+            )
+            page.reload()
+            expect(page.locator(".account")).to_be_visible()
+            page.get_by_role("button", name="Sign out", exact=True).click()
+            expect(
+                page.get_by_role("button", name="Sign in", exact=True)
+            ).to_be_visible()
+            page.get_by_label("Username", exact=True).fill(credentials["username"])
+            page.get_by_label("Password", exact=True).fill(credentials["password"])
+            page.get_by_role("button", name="Sign in", exact=True).click()
+            expect(
+                page.get_by_role("button", name="Sign out", exact=True)
+            ).to_be_visible()
+            page.goto(base + "/settings")
+            expect(page.locator(".account")).to_be_visible()
+            context.close()
         browser.close()
     (output / "results.json").write_text(json.dumps(results, indent=2) + "\n")
     print(
