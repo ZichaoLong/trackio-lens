@@ -4,6 +4,7 @@
   "Password": "密码",
   "Sign in": "登录",
   "Sign out": "退出登录",
+  "Signed in as {username}. Open account settings.": "当前登录：{username}。打开账户设置。",
   "Sign out all devices": "退出所有设备",
   "Current password": "当前密码",
   "New password or passphrase": "新密码或口令短语",

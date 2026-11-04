@@ -54,6 +54,7 @@ def check(base, credentials_path, output, strict=False):
                 page.get_by_role("button", name="Save account", exact=True).click()
                 credentials.update(username="demo-owner", password="p")
             expect(page.locator(".files-page")).to_be_visible()
+            expect(page.locator(".account-name")).to_have_text(credentials["username"])
             assert page.url.endswith("/files?project=lens-demo")
             for route, selector in (
                 ("/", ".plot-container"),
@@ -346,6 +347,7 @@ def check_run_management(browser, base, owner, output):
                 "button", name="退出登录" if chinese else "Sign out", exact=True
             )
         ).to_be_visible()
+        expect(page.locator(".account-name")).to_have_text(owner["username"])
         session = context.request.get(base + "/__lens/session").json()
         headers = {"X-Trackio-Lens-CSRF": session["csrf"]}
 
@@ -463,6 +465,7 @@ def check_accounts(browser, base, owner, state, output):
         sign_in(page, owner["username"], owner["password"])
         users = page.locator(".users")
         expect(users).to_be_visible()
+        expect(page.locator(".account-name")).to_have_text(owner["username"])
         account = page.locator(".account")
         new_password = account.get_by_label("New password or passphrase", exact=True)
         assert new_password.get_attribute("minlength") is None
@@ -480,12 +483,18 @@ def check_accounts(browser, base, owner, state, output):
         page.goto(base + "/settings")
         expect(users).to_be_visible()
         # Only rename: omit the new password and prove the login password survives.
-        renamed = "owner-" + str(width)
+        renamed = "owner-1440" if width == 1440 else "owner-" + "w" * 74
         account.get_by_label("Username", exact=True).fill(renamed)
         account.get_by_label("Current password", exact=True).fill(owner["password"])
         account.get_by_role("button", name="Save account", exact=True).click()
         expect(account.get_by_role("status")).to_contain_text("Account saved")
         owner["username"] = renamed
+        expect(page.locator(".account-name")).to_have_text(renamed)
+        assert renamed in page.locator(".account-link").get_attribute("title")
+        assert page.locator(".lens-bar").evaluate("e => e.scrollWidth <= e.clientWidth")
+        page.locator(".account-link").click()
+        expect(account.get_by_label("Username", exact=True)).to_have_value(renamed)
+        expect(page.locator(".account-name")).to_have_text(renamed)
         username = "reader-" + str(width)
         viewer_temporary = "v" if width == 1440 else "初始" * 150
         viewer_personal = "x" if width == 1440 else "个人" * 150
@@ -511,6 +520,7 @@ def check_accounts(browser, base, owner, state, output):
         view.screenshot(path=str(output / f"{width}-viewer-first-setup.png"))
         view.get_by_role("button", name="Save account", exact=True).click()
         expect(view.locator(".files-page")).to_be_visible()
+        expect(view.locator(".account-name")).to_have_text(username)
         for route, selector in (
             ("/runs", ".runs-table"),
             ("/", ".plot-container"),
@@ -529,9 +539,11 @@ def check_accounts(browser, base, owner, state, output):
                 ).to_be_disabled()
             view.reload()
             expect(view.locator(selector).first).to_be_visible(timeout=15000)
+            expect(view.locator(".account-name")).to_have_text(username)
             assert view.evaluate("document.documentElement.scrollWidth <= innerWidth")
-        view.goto(base + "/settings")
+        view.locator(".account-link").click()
         expect(view.locator(".account")).to_be_visible()
+        expect(view.get_by_label("Username", exact=True)).to_have_value(username)
         assert (
             view.locator(".users").count() == 0
             and view.locator(".updates").count() == 0
