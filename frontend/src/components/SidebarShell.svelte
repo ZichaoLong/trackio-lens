@@ -1,5 +1,6 @@
 <script>
-  import { t } from "../lib/i18n.js";
+  import { locale, t } from "../lib/i18n.js";
+  import { connection } from "../lib/lens.js";
   import Logo from "./Logo.svelte";
   import ProjectSelector from "./ProjectSelector.svelte";
 
@@ -65,6 +66,14 @@
       {@render children?.()}
     </div>
     {#if footer}{@render footer()}{/if}
+    <div class="sync-status" title={$t("Time of the last successful data response")}>
+      {#if $connection.lastUpdated}
+        <span>{$t("Last successful read")}</span>
+        <time datetime={$connection.lastUpdated.toISOString()}>{$connection.lastUpdated.toLocaleTimeString($locale, {hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"})}</time>
+      {:else}
+        <span>{$t("Waiting for data…")}</span>
+      {/if}
+    </div>
   {/if}
 </aside>
 
@@ -119,6 +128,18 @@
     min-height: 0;
     overflow-y: auto;
   }
+  .sync-status {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 8px;
+    flex-shrink: 0;
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border-color-primary, #e5e7eb);
+    color: var(--body-text-color-subdued, #596579);
+    font-size: 12px;
+  }
+  .sync-status time {white-space: nowrap; font-variant-numeric: tabular-nums;}
   @media (max-width: 768px) {
     .sidebar-shell {position:fixed;inset:0 auto 0 0;width:min(320px, calc(100vw - 44px));min-width:0;z-index:60;box-shadow:8px 0 30px #0002;transition:none;}
     .sidebar-shell.collapsed {width:0;min-width:0;border:0;overflow:visible;box-shadow:none;}

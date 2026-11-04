@@ -11,6 +11,56 @@ from pathlib import Path
 from playwright.sync_api import expect, sync_playwright
 
 
+def check_view_chrome(page, width, *, chinese=False, sidebar=True):
+    """The compact header and both sidebar variants share these visible rules."""
+    bar = page.locator(".lens-bar")
+    assert bar.locator(".sync-status").count() == 0
+    assert bar.evaluate("e => e.scrollWidth <= e.clientWidth")
+    if width < 800:
+        assert bar.bounding_box()["height"] <= 48
+        expect(bar.locator(".lens-brand")).to_have_accessible_name("Trackio Lens")
+        assert bar.locator(".lens-brand").inner_text() == "Lens"
+        expect(bar.locator(".mobile-label")).to_have_text(
+            "退出" if chinese else "Logout"
+        )
+        name = bar.locator(".account-link").bounding_box()
+        button = bar.locator(".sign-out").bounding_box()
+        assert (
+            abs(name["y"] + name["height"] / 2 - button["y"] - button["height"] / 2) < 2
+        )
+    if not sidebar:
+        return
+    expand = page.get_by_title("展开侧栏" if chinese else "Expand sidebar", exact=True)
+    collapsed = expand.count() > 0
+    if collapsed:
+        expand.click()
+    shell = page.locator(".sidebar-shell")
+    status = shell.locator(".sync-status")
+    expect(status).to_be_visible()
+    expect(status).to_contain_text(
+        "最近读取成功" if chinese else "Last successful read"
+    )
+    expect(status.locator("time")).to_have_text(
+        __import__("re").compile(r"\d{2}:\d{2}:\d{2}")
+    )
+    assert status.locator("time").evaluate(
+        "e => Number.isFinite(Date.parse(e.dateTime))"
+    )
+    body = shell.locator(".shell-body")
+    body.evaluate("e => e.scrollTop = e.scrollHeight")
+    box, frame = status.bounding_box(), shell.bounding_box()
+    assert abs(box["y"] + box["height"] - frame["y"] - frame["height"]) <= 2
+    assert (
+        box["y"] >= 0 and box["y"] + box["height"] <= page.viewport_size["height"] + 1
+    )
+    body.evaluate("e => e.scrollTop = 0")
+    if collapsed:
+        page.get_by_title(
+            "收起侧栏" if chinese else "Collapse sidebar", exact=True
+        ).click()
+        expect(status).not_to_be_visible()
+
+
 def check(base, credentials_path, output, strict=False):
     credentials = json.loads(credentials_path.read_text())
     output.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -114,6 +164,9 @@ def check(base, credentials_path, output, strict=False):
                     assert response.ok and "synthetic" in response.text()
                 page.reload()
                 expect(page.locator(selector).first).to_be_visible(timeout=15000)
+                check_view_chrome(
+                    page, width, sidebar=route in {"/", "/runs", "/artifacts"}
+                )
                 if width in (1440, 390):
                     page.screenshot(
                         path=str(
@@ -192,6 +245,9 @@ def check(base, credentials_path, output, strict=False):
             )
             page.reload()
             expect(page.get_by_role("alert")).to_contain_text("Data request failed")
+            expect(page.get_by_role("alert")).to_be_visible()
+            if width < 800:
+                assert page.locator(".sync-status").count() == 0
             page.unroute("**/api/get_all_projects")
             page.reload()
             expect(page.locator(".runs-table")).to_be_visible()
@@ -290,6 +346,7 @@ def check(base, credentials_path, output, strict=False):
             ):
                 page.goto(base + route + "?project=lens-demo")
                 expect(page.locator(selector).first).to_be_visible(timeout=15000)
+                check_view_chrome(page, width, chinese=True, sidebar=route == "/")
                 assert page.evaluate(
                     "document.documentElement.scrollWidth <= innerWidth"
                 ), ("zh-CN", width, route)
@@ -490,6 +547,7 @@ def check_accounts(browser, base, owner, state, output):
         expect(account.get_by_role("status")).to_contain_text("Account saved")
         owner["username"] = renamed
         expect(page.locator(".account-name")).to_have_text(renamed)
+        check_view_chrome(page, width, sidebar=False)
         assert renamed in page.locator(".account-link").get_attribute("title")
         assert page.locator(".lens-bar").evaluate("e => e.scrollWidth <= e.clientWidth")
         page.locator(".account-link").click()
